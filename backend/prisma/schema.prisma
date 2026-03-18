@@ -1,0 +1,267 @@
+// This is your Prisma schema file
+// Learn more about it at: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  TEAM_HEAD
+  HOD
+}
+
+enum ServiceType {
+  WEDNESDAY
+  SUNDAY
+}
+
+enum SubmissionStatus {
+  NOT_STARTED
+  SUBMITTED
+  NOT_SUBMITTED
+  LOCKED
+}
+
+// Models
+model Organisation {
+  id             String          @id @default(uuid())
+  name           String
+  timezone       String          @default("Africa/Lagos")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  teams          Team[]
+  serviceConfigs ServiceConfig[]
+}
+
+model Team {
+  id             String       @id @default(uuid())
+  name           String
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  teamHeadId     String?      @unique
+  teamHead       User?        @relation("TeamHead", fields: [teamHeadId], references: [id])
+  departments    Department[]
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organisationId])
+  @@index([isActive])
+}
+
+model Department {
+  id                String             @id @default(uuid())
+  name              String
+  teamId            String
+  team              Team               @relation(fields: [teamId], references: [id])
+  hodId             String?            @unique
+  hod               User?              @relation("DepartmentHOD", fields: [hodId], references: [id])
+  members           Member[]
+  attendanceRecords AttendanceRecord[]
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([teamId])
+  @@index([isActive])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Password reset
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+
+  // Role-specific relations
+  teamAsHead      Team?       @relation("TeamHead")
+  departmentAsHOD Department? @relation("DepartmentHOD")
+
+  // Audit tracking
+  attendanceSubmissions AttendanceRecord[] @relation("SubmittedBy")
+  remindersSent         ReminderLog[]      @relation("TriggeredBy")
+  auditLogs             AuditLog[]
+  membersCreated        Member[]           @relation("CreatedBy")
+  broadcasts            Broadcast[]        @relation("BroadcastCreator")
+
+  // Refresh tokens
+  refreshTokens RefreshToken[]
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Member {
+  id                String            @id @default(uuid())
+  firstName         String
+  lastName          String
+  departmentId      String
+  department        Department        @relation(fields: [departmentId], references: [id])
+  createdById       String
+  createdBy         User              @relation("CreatedBy", fields: [createdById], references: [id])
+  isActive          Boolean           @default(true)
+  // New fields
+  birthMonth        Int?              // 1-12
+  birthDay          Int?              // 1-31
+  phoneNumber       String?           @db.VarChar(20)
+  email             String?           @db.VarChar(255)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  attendanceEntries AttendanceEntry[]
+
+  @@index([departmentId])
+  @@index([isActive])
+  @@index([birthMonth, birthDay])
+}
+
+model AttendanceRecord {
+  id            String           @id @default(uuid())
+  departmentId  String
+  department    Department       @relation(fields: [departmentId], references: [id])
+  serviceDate   DateTime         @db.Date
+  serviceType   ServiceType
+  submittedAt   DateTime?
+  submittedById String?
+  submittedBy   User?            @relation("SubmittedBy", fields: [submittedById], references: [id])
+  notes         String?          @db.VarChar(300)
+  isLocked      Boolean          @default(false)
+  status        SubmissionStatus @default(NOT_STARTED)
+  entries       AttendanceEntry[]
+  reminders     ReminderLog[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([departmentId, serviceDate, serviceType])
+  @@index([serviceDate])
+  @@index([serviceType])
+  @@index([status])
+}
+
+model AttendanceEntry {
+  id                 String           @id @default(uuid())
+  attendanceRecordId String
+  attendanceRecord   AttendanceRecord @relation(fields: [attendanceRecordId], references: [id], onDelete: Cascade)
+  memberId           String
+  member             Member           @relation(fields: [memberId], references: [id])
+  isPresent          Boolean          @default(false)
+  absenceReason      String?          @db.VarChar(200)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([attendanceRecordId, memberId])
+  @@index([attendanceRecordId])
+  @@index([memberId])
+}
+
+model ServiceConfig {
+  id                    String       @id @default(uuid())
+  organisationId        String
+  organisation          Organisation @relation(fields: [organisationId], references: [id])
+  serviceType           ServiceType
+  deadlineTime          String       @default("23:59")
+  editWindowMinutes     Int          @default(60)
+  reminderMinutesBefore Int          @default(120)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@unique([organisationId, serviceType])
+}
+
+model ReminderLog {
+  id                 String           @id @default(uuid())
+  attendanceRecordId String
+  attendanceRecord   AttendanceRecord @relation(fields: [attendanceRecordId], references: [id])
+  triggeredById      String
+  triggeredBy        User             @relation("TriggeredBy", fields: [triggeredById], references: [id])
+  channel            String
+  sentAt             DateTime         @default(now())
+
+  @@index([attendanceRecordId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  userRole   Role
+  action     String
+  entityType String
+  entityId   String
+  timestamp  DateTime @default(now())
+  diffJson   Json?
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
+
+// Email System Models
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g., "birthday_wishes", "event_announcement"
+  subject   String
+  body      String   @db.Text // HTML with {{firstName}}, {{lastName}} placeholders
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmailLog {
+  id             String   @id @default(uuid())
+  templateId     String?
+  recipientEmail String
+  recipientName  String
+  subject        String
+  status         String   // 'sent', 'failed', 'pending'
+  errorMessage   String?
+  sentAt         DateTime @default(now())
+
+  @@index([status])
+  @@index([sentAt])
+}
+
+model Broadcast {
+  id            String   @id @default(uuid())
+  subject       String
+  body          String   @db.Text
+  recipientType String   // 'all', 'admins', 'team_heads', 'hods', 'members', 'custom'
+  teamIds       String[] // For filtered broadcasts
+  status        String   @default("draft") // 'draft', 'sending', 'sent', 'failed'
+  sentCount     Int      @default(0)
+  failedCount   Int      @default(0)
+  createdById   String
+  createdBy     User     @relation("BroadcastCreator", fields: [createdById], references: [id])
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+}

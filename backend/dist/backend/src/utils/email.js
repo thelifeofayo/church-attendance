@@ -1,0 +1,124 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.emailService = void 0;
+const nodemailer_1 = __importDefault(require("nodemailer"));
+const config_1 = require("../config");
+const logger_1 = require("./logger");
+const prisma_1 = require("./prisma");
+class EmailService {
+    transporter = null;
+    getTransporter() {
+        if (!this.transporter) {
+            if (!config_1.config.email.host || !config_1.config.email.user) {
+                throw new Error('Email configuration is incomplete. Please set SMTP environment variables.');
+            }
+            this.transporter = nodemailer_1.default.createTransport({
+                host: config_1.config.email.host,
+                port: config_1.config.email.port,
+                secure: config_1.config.email.port === 465,
+                auth: {
+                    user: config_1.config.email.user,
+                    pass: config_1.config.email.pass,
+                },
+            });
+        }
+        return this.transporter;
+    }
+    isConfigured() {
+        return !!(config_1.config.email.host && config_1.config.email.user && config_1.config.email.pass);
+    }
+    /**
+     * Replace template placeholders with actual values
+     */
+    interpolateTemplate(template, data) {
+        let result = template;
+        for (const [key, value] of Object.entries(data)) {
+            result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
+        }
+        return result;
+    }
+    /**
+     * Send an email and log the result
+     */
+    async sendEmail(options) {
+        const { to, subject, html, recipientName, templateId } = options;
+        // Log the attempt
+        const logEntry = await prisma_1.prisma.emailLog.create({
+            data: {
+                templateId: templateId || null,
+                recipientEmail: to,
+                recipientName: recipientName || to,
+                subject,
+                status: 'pending',
+            },
+        });
+        if (!this.isConfigured()) {
+            // If email is not configured, just log it
+            logger_1.logger.warn(`Email not configured. Would have sent to ${to}: ${subject}`);
+            await prisma_1.prisma.emailLog.update({
+                where: { id: logEntry.id },
+                data: { status: 'failed', errorMessage: 'Email service not configured' },
+            });
+            return { success: false, error: 'Email service not configured' };
+        }
+        try {
+            const transporter = this.getTransporter();
+            await transporter.sendMail({
+                from: config_1.config.email.from,
+                to,
+                subject,
+                html,
+            });
+            // Update log as sent
+            await prisma_1.prisma.emailLog.update({
+                where: { id: logEntry.id },
+                data: { status: 'sent' },
+            });
+            logger_1.logger.info(`Email sent successfully to ${to}: ${subject}`);
+            return { success: true };
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            // Update log as failed
+            await prisma_1.prisma.emailLog.update({
+                where: { id: logEntry.id },
+                data: { status: 'failed', errorMessage },
+            });
+            logger_1.logger.error(`Failed to send email to ${to}: ${errorMessage}`);
+            return { success: false, error: errorMessage };
+        }
+    }
+    /**
+     * Send multiple emails (for broadcasts)
+     */
+    async sendBulkEmails(recipients, subject, bodyTemplate) {
+        let sent = 0;
+        let failed = 0;
+        for (const recipient of recipients) {
+            const html = this.interpolateTemplate(bodyTemplate, {
+                firstName: recipient.firstName,
+                lastName: recipient.lastName,
+            });
+            const result = await this.sendEmail({
+                to: recipient.email,
+                subject,
+                html,
+                recipientName: `${recipient.firstName} ${recipient.lastName}`,
+            });
+            if (result.success) {
+                sent++;
+            }
+            else {
+                failed++;
+            }
+            // Small delay to avoid rate limiting
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return { sent, failed };
+    }
+}
+exports.emailService = new EmailService();
+//# sourceMappingURL=email.js.map

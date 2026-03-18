@@ -1,0 +1,180 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.emailTemplatesService = exports.EmailTemplatesService = void 0;
+const prisma_1 = require("../../utils/prisma");
+const errors_1 = require("../../utils/errors");
+class EmailTemplatesService {
+    async listTemplates(query) {
+        const { page, limit } = query;
+        const skip = (page - 1) * limit;
+        const [templates, total] = await Promise.all([
+            prisma_1.prisma.emailTemplate.findMany({
+                skip,
+                take: limit,
+                orderBy: { name: 'asc' },
+            }),
+            prisma_1.prisma.emailTemplate.count(),
+        ]);
+        return {
+            success: true,
+            data: templates.map((t) => ({
+                id: t.id,
+                name: t.name,
+                subject: t.subject,
+                body: t.body,
+                isActive: t.isActive,
+                createdAt: t.createdAt.toISOString(),
+                updatedAt: t.updatedAt.toISOString(),
+            })),
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+    async getTemplateById(id) {
+        const template = await prisma_1.prisma.emailTemplate.findUnique({
+            where: { id },
+        });
+        if (!template) {
+            throw new errors_1.NotFoundError('Email template');
+        }
+        return {
+            id: template.id,
+            name: template.name,
+            subject: template.subject,
+            body: template.body,
+            isActive: template.isActive,
+            createdAt: template.createdAt.toISOString(),
+            updatedAt: template.updatedAt.toISOString(),
+        };
+    }
+    async getTemplateByName(name) {
+        const template = await prisma_1.prisma.emailTemplate.findUnique({
+            where: { name },
+        });
+        if (!template) {
+            return null;
+        }
+        return {
+            id: template.id,
+            name: template.name,
+            subject: template.subject,
+            body: template.body,
+            isActive: template.isActive,
+            createdAt: template.createdAt.toISOString(),
+            updatedAt: template.updatedAt.toISOString(),
+        };
+    }
+    async createTemplate(input) {
+        const { name, subject, body } = input;
+        // Check for existing template with same name
+        const existing = await prisma_1.prisma.emailTemplate.findUnique({
+            where: { name },
+        });
+        if (existing) {
+            throw new errors_1.ConflictError('A template with this name already exists');
+        }
+        const template = await prisma_1.prisma.emailTemplate.create({
+            data: {
+                name,
+                subject,
+                body,
+            },
+        });
+        return {
+            id: template.id,
+            name: template.name,
+            subject: template.subject,
+            body: template.body,
+            isActive: template.isActive,
+            createdAt: template.createdAt.toISOString(),
+            updatedAt: template.updatedAt.toISOString(),
+        };
+    }
+    async updateTemplate(id, input) {
+        const existing = await prisma_1.prisma.emailTemplate.findUnique({
+            where: { id },
+        });
+        if (!existing) {
+            throw new errors_1.NotFoundError('Email template');
+        }
+        const template = await prisma_1.prisma.emailTemplate.update({
+            where: { id },
+            data: {
+                ...(input.subject && { subject: input.subject }),
+                ...(input.body && { body: input.body }),
+                ...(input.isActive !== undefined && { isActive: input.isActive }),
+            },
+        });
+        return {
+            id: template.id,
+            name: template.name,
+            subject: template.subject,
+            body: template.body,
+            isActive: template.isActive,
+            createdAt: template.createdAt.toISOString(),
+            updatedAt: template.updatedAt.toISOString(),
+        };
+    }
+    async deleteTemplate(id) {
+        const existing = await prisma_1.prisma.emailTemplate.findUnique({
+            where: { id },
+        });
+        if (!existing) {
+            throw new errors_1.NotFoundError('Email template');
+        }
+        await prisma_1.prisma.emailTemplate.delete({
+            where: { id },
+        });
+    }
+    // Seed default templates if they don't exist
+    async seedDefaultTemplates() {
+        const birthdayTemplate = await this.getTemplateByName('birthday_wishes');
+        if (!birthdayTemplate) {
+            await prisma_1.prisma.emailTemplate.create({
+                data: {
+                    name: 'birthday_wishes',
+                    subject: 'Happy Birthday, {{firstName}}! 🎂',
+                    body: `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px 10px 0 0; }
+    .content { padding: 30px; background: #f9f9f9; border-radius: 0 0 10px 10px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Happy Birthday! 🎉</h1>
+    </div>
+    <div class="content">
+      <p>Dear {{firstName}} {{lastName}},</p>
+      <p>On behalf of the entire church family, we want to wish you a very Happy Birthday!</p>
+      <p>May God bless you abundantly on this special day and throughout the coming year. May His grace, love, and peace be with you always.</p>
+      <p>Have a wonderful celebration!</p>
+      <p>With love and blessings,<br/>Your Church Family</p>
+    </div>
+    <div class="footer">
+      <p>This is an automated birthday message from the Church Attendance System.</p>
+    </div>
+  </div>
+</body>
+</html>
+          `.trim(),
+                    isActive: true,
+                },
+            });
+        }
+    }
+}
+exports.EmailTemplatesService = EmailTemplatesService;
+exports.emailTemplatesService = new EmailTemplatesService();
+//# sourceMappingURL=emailTemplates.service.js.map
