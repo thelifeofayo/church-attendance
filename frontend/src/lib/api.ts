@@ -1,8 +1,13 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
+const apiBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  // Some Vercel setups set `VITE_API_BASE_URL` instead; support both.
+  import.meta.env.VITE_API_BASE_URL;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+  baseURL: apiBaseUrl ? `${apiBaseUrl}/api` : '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,7 +39,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = useAuthStore.getState().refreshToken;
         if (refreshToken) {
-          const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+          const baseUrl = apiBaseUrl ? `${apiBaseUrl}/api` : '/api';
           const response = await axios.post(`${baseUrl}/auth/refresh`, { refreshToken });
           const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
