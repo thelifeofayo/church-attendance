@@ -7,11 +7,17 @@ export declare const createUserSchema: z.ZodEffects<z.ZodObject<{
     role: z.ZodNativeEnum<typeof Role>;
     teamId: z.ZodOptional<z.ZodString>;
     departmentId: z.ZodOptional<z.ZodString>;
+    birthMonth: z.ZodOptional<z.ZodNumber>;
+    birthDay: z.ZodOptional<z.ZodNumber>;
+    phoneNumber: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     email: string;
     firstName: string;
     lastName: string;
     role: Role;
+    birthMonth?: number | undefined;
+    birthDay?: number | undefined;
+    phoneNumber?: string | undefined;
     teamId?: string | undefined;
     departmentId?: string | undefined;
 }, {
@@ -19,6 +25,9 @@ export declare const createUserSchema: z.ZodEffects<z.ZodObject<{
     firstName: string;
     lastName: string;
     role: Role;
+    birthMonth?: number | undefined;
+    birthDay?: number | undefined;
+    phoneNumber?: string | undefined;
     teamId?: string | undefined;
     departmentId?: string | undefined;
 }>, {
@@ -26,6 +35,9 @@ export declare const createUserSchema: z.ZodEffects<z.ZodObject<{
     firstName: string;
     lastName: string;
     role: Role;
+    birthMonth?: number | undefined;
+    birthDay?: number | undefined;
+    phoneNumber?: string | undefined;
     teamId?: string | undefined;
     departmentId?: string | undefined;
 }, {
@@ -33,6 +45,9 @@ export declare const createUserSchema: z.ZodEffects<z.ZodObject<{
     firstName: string;
     lastName: string;
     role: Role;
+    birthMonth?: number | undefined;
+    birthDay?: number | undefined;
+    phoneNumber?: string | undefined;
     teamId?: string | undefined;
     departmentId?: string | undefined;
 }>;
@@ -41,16 +56,25 @@ export declare const updateUserSchema: z.ZodObject<{
     lastName: z.ZodOptional<z.ZodString>;
     email: z.ZodOptional<z.ZodString>;
     isActive: z.ZodOptional<z.ZodBoolean>;
+    birthMonth: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    birthDay: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    phoneNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     email?: string | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
     isActive?: boolean | undefined;
+    birthMonth?: number | null | undefined;
+    birthDay?: number | null | undefined;
+    phoneNumber?: string | null | undefined;
 }, {
     email?: string | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
     isActive?: boolean | undefined;
+    birthMonth?: number | null | undefined;
+    birthDay?: number | null | undefined;
+    phoneNumber?: string | null | undefined;
 }>;
 export declare const listUsersQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodEffects<z.ZodString, number, string>>;

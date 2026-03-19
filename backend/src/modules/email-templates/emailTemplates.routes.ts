@@ -20,7 +20,7 @@ router.use(requireAdmin());
 router.get(
   '/',
   validate({ query: listEmailTemplatesQuerySchema }),
-  emailTemplatesController.list
+  emailTemplatesController.list as any
 );
 
 router.get(
@@ -51,7 +51,7 @@ router.delete(
 router.get(
   '/logs/list',
   validate({ query: listEmailLogsQuerySchema }),
-  emailTemplatesController.listLogs
+  emailTemplatesController.listLogs as any
 );
 
 router.get(

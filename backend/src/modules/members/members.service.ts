@@ -106,7 +106,7 @@ export class MembersService {
       email: member.email,
       createdAt: member.createdAt.toISOString(),
       updatedAt: member.updatedAt.toISOString(),
-      department: member.department,
+      department: member.department as any,
       createdBy: member.createdBy ? {
         id: member.createdBy.id,
         email: '',

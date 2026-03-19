@@ -4,36 +4,36 @@ export declare const createMemberSchema: z.ZodEffects<z.ZodObject<{
     lastName: z.ZodString;
     birthMonth: z.ZodOptional<z.ZodNumber>;
     birthDay: z.ZodOptional<z.ZodNumber>;
-    phoneNumber: z.ZodOptional<z.ZodString>;
-    email: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    phoneNumber: z.ZodString;
+    email: z.ZodString;
 }, "strip", z.ZodTypeAny, {
+    email: string;
     firstName: string;
     lastName: string;
-    email?: string | undefined;
+    phoneNumber: string;
     birthMonth?: number | undefined;
     birthDay?: number | undefined;
-    phoneNumber?: string | undefined;
 }, {
+    email: string;
     firstName: string;
     lastName: string;
-    email?: string | undefined;
+    phoneNumber: string;
     birthMonth?: number | undefined;
     birthDay?: number | undefined;
-    phoneNumber?: string | undefined;
 }>, {
+    email: string;
     firstName: string;
     lastName: string;
-    email?: string | undefined;
+    phoneNumber: string;
     birthMonth?: number | undefined;
     birthDay?: number | undefined;
-    phoneNumber?: string | undefined;
 }, {
+    email: string;
     firstName: string;
     lastName: string;
-    email?: string | undefined;
+    phoneNumber: string;
     birthMonth?: number | undefined;
     birthDay?: number | undefined;
-    phoneNumber?: string | undefined;
 }>;
 export declare const updateMemberSchema: z.ZodObject<{
     firstName: z.ZodOptional<z.ZodString>;
@@ -41,24 +41,24 @@ export declare const updateMemberSchema: z.ZodObject<{
     isActive: z.ZodOptional<z.ZodBoolean>;
     birthMonth: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     birthDay: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-    phoneNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    email: z.ZodUnion<[z.ZodOptional<z.ZodNullable<z.ZodString>>, z.ZodLiteral<"">]>;
+    phoneNumber: z.ZodOptional<z.ZodString>;
+    email: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    email?: string | null | undefined;
+    email?: string | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
     isActive?: boolean | undefined;
     birthMonth?: number | null | undefined;
     birthDay?: number | null | undefined;
-    phoneNumber?: string | null | undefined;
+    phoneNumber?: string | undefined;
 }, {
-    email?: string | null | undefined;
+    email?: string | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
     isActive?: boolean | undefined;
     birthMonth?: number | null | undefined;
     birthDay?: number | null | undefined;
-    phoneNumber?: string | null | undefined;
+    phoneNumber?: string | undefined;
 }>;
 export declare const listMembersQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodEffects<z.ZodString, number, string>>;

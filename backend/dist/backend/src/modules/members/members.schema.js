@@ -7,8 +7,8 @@ exports.createMemberSchema = zod_1.z.object({
     lastName: zod_1.z.string().min(1, 'Last name is required').max(100),
     birthMonth: zod_1.z.number().int().min(1).max(12).optional(),
     birthDay: zod_1.z.number().int().min(1).max(31).optional(),
-    phoneNumber: zod_1.z.string().max(20).optional(),
-    email: zod_1.z.string().email('Invalid email address').max(255).optional().or(zod_1.z.literal('')),
+    phoneNumber: zod_1.z.string().min(1, 'Phone number is required').max(20),
+    email: zod_1.z.string().min(1, 'Email is required').email('Invalid email address').max(255),
 }).refine((data) => {
     // If one of birthMonth or birthDay is provided, both must be provided
     if ((data.birthMonth && !data.birthDay) || (!data.birthMonth && data.birthDay)) {
@@ -22,8 +22,8 @@ exports.updateMemberSchema = zod_1.z.object({
     isActive: zod_1.z.boolean().optional(),
     birthMonth: zod_1.z.number().int().min(1).max(12).nullable().optional(),
     birthDay: zod_1.z.number().int().min(1).max(31).nullable().optional(),
-    phoneNumber: zod_1.z.string().max(20).nullable().optional(),
-    email: zod_1.z.string().email('Invalid email address').max(255).nullable().optional().or(zod_1.z.literal('')),
+    phoneNumber: zod_1.z.string().min(1, 'Phone number is required').max(20).optional(),
+    email: zod_1.z.string().min(1, 'Email is required').email('Invalid email address').max(255).optional(),
 });
 exports.listMembersQuerySchema = zod_1.z.object({
     page: zod_1.z.string().transform(Number).default('1'),

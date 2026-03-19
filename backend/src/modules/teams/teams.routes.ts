@@ -20,7 +20,7 @@ router.get(
   '/',
   requireAdminOrTeamHead(),
   validate({ query: listTeamsQuerySchema }),
-  teamsController.list
+  teamsController.list as any
 );
 
 router.get(

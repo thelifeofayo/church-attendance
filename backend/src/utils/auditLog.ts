@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Prisma, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -24,7 +24,7 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
       action,
       entityType,
       entityId,
-      diffJson: diff || null,
+      diffJson: diff ? (diff as Prisma.InputJsonValue) : Prisma.DbNull,
     },
   });
 }

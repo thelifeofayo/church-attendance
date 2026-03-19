@@ -19,7 +19,7 @@ router.use(requireHOD());
 router.get(
   '/',
   validate({ query: listMembersQuerySchema }),
-  membersController.list
+  membersController.list as any
 );
 
 router.get(

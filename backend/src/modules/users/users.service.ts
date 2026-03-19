@@ -140,8 +140,8 @@ export class UsersService {
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
-      teamAsHead: user.teamAsHead,
-      departmentAsHOD: user.departmentAsHOD,
+      teamAsHead: user.teamAsHead as any,
+      departmentAsHOD: user.departmentAsHOD as any,
     };
   }
 

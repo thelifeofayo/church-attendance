@@ -5,7 +5,7 @@ const zod_1 = require("zod");
 const shared_1 = require("shared");
 exports.submitAttendanceSchema = zod_1.z.object({
     entries: zod_1.z.array(zod_1.z.object({
-        memberId: zod_1.z.string().uuid('Invalid member ID'),
+        memberId: zod_1.z.string().min(1, 'Member ID is required'),
         isPresent: zod_1.z.boolean(),
         absenceReason: zod_1.z.string().max(200, 'Absence reason cannot exceed 200 characters').optional(),
     })).min(1, 'At least one attendance entry is required'),
@@ -13,7 +13,7 @@ exports.submitAttendanceSchema = zod_1.z.object({
 });
 exports.updateAttendanceSchema = zod_1.z.object({
     entries: zod_1.z.array(zod_1.z.object({
-        memberId: zod_1.z.string().uuid('Invalid member ID'),
+        memberId: zod_1.z.string().min(1, 'Member ID is required'),
         isPresent: zod_1.z.boolean(),
         absenceReason: zod_1.z.string().max(200, 'Absence reason cannot exceed 200 characters').nullable().optional(),
     })).optional(),
@@ -40,5 +40,6 @@ exports.createAttendanceRecordSchema = zod_1.z.object({
 });
 exports.triggerRecordCreationSchema = zod_1.z.object({
     serviceType: zod_1.z.nativeEnum(shared_1.ServiceType),
+    serviceDate: zod_1.z.string().refine((val) => !isNaN(Date.parse(val)), 'Invalid date').optional(),
 });
 //# sourceMappingURL=attendance.schema.js.map

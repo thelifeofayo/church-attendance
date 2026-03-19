@@ -7,7 +7,7 @@ export declare class AttendanceService {
     submitAttendance(id: string, input: SubmitAttendanceInput, currentUser: TokenPayload): Promise<AttendanceRecord>;
     updateAttendance(id: string, input: UpdateAttendanceInput, currentUser: TokenPayload): Promise<AttendanceRecord>;
     createAttendanceRecord(departmentId: string, serviceDate: Date, serviceType: ServiceType): Promise<AttendanceRecord>;
-    createRecordsForServiceDay(serviceType: ServiceType): Promise<number>;
+    createRecordsForServiceDay(serviceType: ServiceType, serviceDate?: Date): Promise<number>;
     sendReminder(id: string, currentUser: TokenPayload): Promise<void>;
 }
 export declare const attendanceService: AttendanceService;

@@ -13,7 +13,7 @@ async function createAuditLog(params) {
             action,
             entityType,
             entityId,
-            diffJson: diff || null,
+            diffJson: diff ? diff : client_1.Prisma.DbNull,
         },
     });
 }

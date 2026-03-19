@@ -21,7 +21,7 @@ router.get(
   '/',
   requireAuthenticated(),
   validate({ query: listAttendanceQuerySchema }),
-  attendanceController.list
+  attendanceController.list as any
 );
 
 // Trigger attendance record creation - Admin only (for manual creation if cron missed)

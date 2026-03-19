@@ -17,6 +17,7 @@ export declare class AttendanceController {
     }>, res: Response<ApiResponse<void>>, next: NextFunction): Promise<void>;
     triggerRecordCreation(req: Request<unknown, unknown, {
         serviceType: ServiceType;
+        serviceDate?: string;
     }>, res: Response<ApiResponse<{
         created: number;
     }>>, next: NextFunction): Promise<void>;

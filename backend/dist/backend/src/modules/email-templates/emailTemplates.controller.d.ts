@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse, EmailTemplate, PaginatedResponse } from 'shared';
-import { CreateEmailTemplateInput, UpdateEmailTemplateInput, ListEmailTemplatesQuery } from './emailTemplates.schema';
+import { ApiResponse, EmailTemplate, EmailLog, PaginatedResponse } from 'shared';
+import { CreateEmailTemplateInput, UpdateEmailTemplateInput, ListEmailTemplatesQuery, ListEmailLogsQuery } from './emailTemplates.schema';
 export declare class EmailTemplatesController {
     list(req: Request<unknown, unknown, unknown, ListEmailTemplatesQuery>, res: Response<PaginatedResponse<EmailTemplate>>, next: NextFunction): Promise<void>;
     getById(req: Request<{
@@ -13,6 +13,13 @@ export declare class EmailTemplatesController {
     delete(req: Request<{
         id: string;
     }>, res: Response<ApiResponse<void>>, next: NextFunction): Promise<void>;
+    listLogs(req: Request<unknown, unknown, unknown, ListEmailLogsQuery>, res: Response<PaginatedResponse<EmailLog>>, next: NextFunction): Promise<void>;
+    getStats(_req: Request, res: Response<ApiResponse<{
+        sent: number;
+        failed: number;
+        pending: number;
+        total: number;
+    }>>, next: NextFunction): Promise<void>;
 }
 export declare const emailTemplatesController: EmailTemplatesController;
 //# sourceMappingURL=emailTemplates.controller.d.ts.map

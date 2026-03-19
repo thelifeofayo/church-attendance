@@ -130,6 +130,57 @@ class EmailTemplatesService {
             where: { id },
         });
     }
+    // List email logs
+    async listEmailLogs(query) {
+        const { page, limit, status } = query;
+        const skip = (page - 1) * limit;
+        const where = {};
+        if (status) {
+            where.status = status;
+        }
+        const [logs, total] = await Promise.all([
+            prisma_1.prisma.emailLog.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { sentAt: 'desc' },
+            }),
+            prisma_1.prisma.emailLog.count({ where }),
+        ]);
+        return {
+            success: true,
+            data: logs.map((log) => ({
+                id: log.id,
+                templateId: log.templateId,
+                recipientEmail: log.recipientEmail,
+                recipientName: log.recipientName,
+                subject: log.subject,
+                status: log.status,
+                errorMessage: log.errorMessage,
+                sentAt: log.sentAt.toISOString(),
+            })),
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+    // Get email stats
+    async getEmailStats() {
+        const [sent, failed, pending] = await Promise.all([
+            prisma_1.prisma.emailLog.count({ where: { status: 'sent' } }),
+            prisma_1.prisma.emailLog.count({ where: { status: 'failed' } }),
+            prisma_1.prisma.emailLog.count({ where: { status: 'pending' } }),
+        ]);
+        return {
+            sent,
+            failed,
+            pending,
+            total: sent + failed + pending,
+        };
+    }
     // Seed default templates if they don't exist
     async seedDefaultTemplates() {
         const birthdayTemplate = await this.getTemplateByName('birthday_wishes');

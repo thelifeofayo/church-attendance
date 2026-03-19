@@ -10,69 +10,90 @@ const prisma_1 = require("../utils/prisma");
 const email_1 = require("../utils/email");
 const emailTemplates_service_1 = require("../modules/email-templates/emailTemplates.service");
 const logger_1 = require("../utils/logger");
-// Schedule: Run at 6:00 AM daily
 const BIRTHDAY_SCHEDULE = '0 6 * * *';
-async function sendBirthdayWishes() {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1; // JS months are 0-indexed
-    const currentDay = today.getDate();
-    logger_1.logger.info(`Checking for birthdays on ${currentMonth}/${currentDay}`);
-    try {
-        // Get the birthday template
-        const template = await emailTemplates_service_1.emailTemplatesService.getTemplateByName('birthday_wishes');
-        if (!template || !template.isActive) {
-            logger_1.logger.info('Birthday email template not found or inactive, skipping birthday wishes');
-            return;
-        }
-        // Find members with birthdays today who have email addresses
-        const birthdayMembers = await prisma_1.prisma.member.findMany({
+async function getBirthdayPeople(month, day) {
+    const [members, users] = await Promise.all([
+        prisma_1.prisma.member.findMany({
             where: {
-                birthMonth: currentMonth,
-                birthDay: currentDay,
+                birthMonth: month,
+                birthDay: day,
                 email: { not: null },
                 isActive: true,
             },
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
+            select: { firstName: true, lastName: true, email: true },
+        }),
+        prisma_1.prisma.user.findMany({
+            where: {
+                birthMonth: month,
+                birthDay: day,
+                isActive: true,
             },
-        });
-        if (birthdayMembers.length === 0) {
+            select: { firstName: true, lastName: true, email: true },
+        }),
+    ]);
+    const people = [];
+    const seenEmails = new Set();
+    for (const m of members) {
+        if (!m.email)
+            continue;
+        const key = m.email.toLowerCase();
+        if (!seenEmails.has(key)) {
+            seenEmails.add(key);
+            people.push({ firstName: m.firstName, lastName: m.lastName, email: m.email, source: 'member' });
+        }
+    }
+    for (const u of users) {
+        const key = u.email.toLowerCase();
+        if (!seenEmails.has(key)) {
+            seenEmails.add(key);
+            people.push({ firstName: u.firstName, lastName: u.lastName, email: u.email, source: 'user' });
+        }
+    }
+    return people;
+}
+async function sendBirthdayWishes() {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    const currentDay = today.getDate();
+    logger_1.logger.info(`Checking for birthdays on ${currentMonth}/${currentDay}`);
+    try {
+        const template = await emailTemplates_service_1.emailTemplatesService.getTemplateByName('birthday_wishes');
+        if (!template || !template.isActive) {
+            logger_1.logger.info('Birthday email template not found or inactive, skipping');
+            return;
+        }
+        const birthdayPeople = await getBirthdayPeople(currentMonth, currentDay);
+        if (birthdayPeople.length === 0) {
             logger_1.logger.info('No birthdays today');
             return;
         }
-        logger_1.logger.info(`Found ${birthdayMembers.length} members with birthdays today`);
+        logger_1.logger.info(`Found ${birthdayPeople.length} people with birthdays today (members + users)`);
         let sent = 0;
         let failed = 0;
-        for (const member of birthdayMembers) {
-            if (!member.email)
-                continue;
+        for (const person of birthdayPeople) {
             const subject = email_1.emailService.interpolateTemplate(template.subject, {
-                firstName: member.firstName,
-                lastName: member.lastName,
+                firstName: person.firstName,
+                lastName: person.lastName,
             });
             const body = email_1.emailService.interpolateTemplate(template.body, {
-                firstName: member.firstName,
-                lastName: member.lastName,
+                firstName: person.firstName,
+                lastName: person.lastName,
             });
             const result = await email_1.emailService.sendEmail({
-                to: member.email,
+                to: person.email,
                 subject,
                 html: body,
-                recipientName: `${member.firstName} ${member.lastName}`,
+                recipientName: `${person.firstName} ${person.lastName}`,
                 templateId: template.id,
             });
             if (result.success) {
                 sent++;
-                logger_1.logger.info(`Birthday email sent to ${member.firstName} ${member.lastName}`);
+                logger_1.logger.info(`Birthday email sent to ${person.firstName} ${person.lastName} (${person.source})`);
             }
             else {
                 failed++;
-                logger_1.logger.error(`Failed to send birthday email to ${member.firstName} ${member.lastName}: ${result.error}`);
+                logger_1.logger.error(`Failed to send birthday email to ${person.firstName} ${person.lastName}: ${result.error}`);
             }
-            // Small delay between emails
             await new Promise((resolve) => setTimeout(resolve, 200));
         }
         logger_1.logger.info(`Birthday wishes complete: ${sent} sent, ${failed} failed`);
@@ -88,7 +109,6 @@ function startBirthdayWisherJob() {
     });
     logger_1.logger.info('Birthday wisher job scheduled (daily at 6:00 AM)');
 }
-// Manual trigger function (useful for testing)
 async function triggerBirthdayWishes() {
     logger_1.logger.info('Manually triggering birthday wishes');
     const today = new Date();
@@ -98,32 +118,23 @@ async function triggerBirthdayWishes() {
     if (!template || !template.isActive) {
         return { sent: 0, failed: 0 };
     }
-    const birthdayMembers = await prisma_1.prisma.member.findMany({
-        where: {
-            birthMonth: currentMonth,
-            birthDay: currentDay,
-            email: { not: null },
-            isActive: true,
-        },
-    });
+    const birthdayPeople = await getBirthdayPeople(currentMonth, currentDay);
     let sent = 0;
     let failed = 0;
-    for (const member of birthdayMembers) {
-        if (!member.email)
-            continue;
+    for (const person of birthdayPeople) {
         const subject = email_1.emailService.interpolateTemplate(template.subject, {
-            firstName: member.firstName,
-            lastName: member.lastName,
+            firstName: person.firstName,
+            lastName: person.lastName,
         });
         const body = email_1.emailService.interpolateTemplate(template.body, {
-            firstName: member.firstName,
-            lastName: member.lastName,
+            firstName: person.firstName,
+            lastName: person.lastName,
         });
         const result = await email_1.emailService.sendEmail({
-            to: member.email,
+            to: person.email,
             subject,
             html: body,
-            recipientName: `${member.firstName} ${member.lastName}`,
+            recipientName: `${person.firstName} ${person.lastName}`,
             templateId: template.id,
         });
         if (result.success) {

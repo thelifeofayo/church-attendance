@@ -21,7 +21,7 @@ router.get(
   '/',
   requireAuthenticated(),
   validate({ query: listDepartmentsQuerySchema }),
-  departmentsController.list
+  departmentsController.list as any
 );
 
 router.get(

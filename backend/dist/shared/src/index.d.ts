@@ -55,6 +55,9 @@ export interface User extends BaseEntity {
     lastName: string;
     role: Role;
     isActive: boolean;
+    birthMonth?: number | null;
+    birthDay?: number | null;
+    phoneNumber?: string | null;
 }
 export interface UserWithRelations extends User {
     teamAsHead?: Team | null;
@@ -341,6 +344,7 @@ export interface TeamAttendanceSummary {
 export interface ApiResponse<T> {
     success: boolean;
     data?: T;
+    message?: string;
     error?: {
         code: string;
         message: string;

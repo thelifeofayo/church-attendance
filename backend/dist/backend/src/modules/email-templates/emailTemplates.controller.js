@@ -59,6 +59,27 @@ class EmailTemplatesController {
             next(error);
         }
     }
+    async listLogs(req, res, next) {
+        try {
+            const result = await emailTemplates_service_1.emailTemplatesService.listEmailLogs(req.query);
+            res.json(result);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getStats(_req, res, next) {
+        try {
+            const stats = await emailTemplates_service_1.emailTemplatesService.getEmailStats();
+            res.json({
+                success: true,
+                data: stats,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
 }
 exports.EmailTemplatesController = EmailTemplatesController;
 exports.emailTemplatesController = new EmailTemplatesController();

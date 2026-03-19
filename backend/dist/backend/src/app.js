@@ -22,6 +22,7 @@ const dashboard_routes_1 = __importDefault(require("./modules/dashboard/dashboar
 const reports_routes_1 = __importDefault(require("./modules/reports/reports.routes"));
 const emailTemplates_routes_1 = __importDefault(require("./modules/email-templates/emailTemplates.routes"));
 const broadcasts_routes_1 = __importDefault(require("./modules/broadcasts/broadcasts.routes"));
+const uploads_routes_1 = __importDefault(require("./modules/uploads/uploads.routes"));
 function createApp() {
     const app = (0, express_1.default)();
     // Security middleware
@@ -68,6 +69,7 @@ function createApp() {
     app.use('/api/reports', reports_routes_1.default);
     app.use('/api/email-templates', emailTemplates_routes_1.default);
     app.use('/api/broadcasts', broadcasts_routes_1.default);
+    app.use('/api/uploads', uploads_routes_1.default);
     // 404 handler
     app.use(errorHandler_1.notFoundHandler);
     // Error handler

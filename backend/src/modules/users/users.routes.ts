@@ -19,7 +19,7 @@ router.use(requireAdminOrTeamHead());
 router.get(
   '/',
   validate({ query: listUsersQuerySchema }),
-  usersController.list
+  usersController.list as any
 );
 
 router.get(

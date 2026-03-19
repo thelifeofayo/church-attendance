@@ -113,10 +113,13 @@ export declare const createAttendanceRecordSchema: z.ZodObject<{
 }>;
 export declare const triggerRecordCreationSchema: z.ZodObject<{
     serviceType: z.ZodNativeEnum<typeof ServiceType>;
+    serviceDate: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
 }, "strip", z.ZodTypeAny, {
     serviceType: ServiceType;
+    serviceDate?: string | undefined;
 }, {
     serviceType: ServiceType;
+    serviceDate?: string | undefined;
 }>;
 export type SubmitAttendanceInput = z.infer<typeof submitAttendanceSchema>;
 export type UpdateAttendanceInput = z.infer<typeof updateAttendanceSchema>;

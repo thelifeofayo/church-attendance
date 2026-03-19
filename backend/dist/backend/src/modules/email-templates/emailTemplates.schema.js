@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.emailTemplateIdParamSchema = exports.listEmailTemplatesQuerySchema = exports.updateEmailTemplateSchema = exports.createEmailTemplateSchema = void 0;
+exports.listEmailLogsQuerySchema = exports.emailTemplateIdParamSchema = exports.listEmailTemplatesQuerySchema = exports.updateEmailTemplateSchema = exports.createEmailTemplateSchema = void 0;
 const zod_1 = require("zod");
 exports.createEmailTemplateSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Name is required').max(50),
@@ -18,5 +18,10 @@ exports.listEmailTemplatesQuerySchema = zod_1.z.object({
 });
 exports.emailTemplateIdParamSchema = zod_1.z.object({
     id: zod_1.z.string().uuid('Invalid template ID'),
+});
+exports.listEmailLogsQuerySchema = zod_1.z.object({
+    page: zod_1.z.string().transform(Number).default('1'),
+    limit: zod_1.z.string().transform(Number).default('50'),
+    status: zod_1.z.enum(['sent', 'failed', 'pending']).optional(),
 });
 //# sourceMappingURL=emailTemplates.schema.js.map

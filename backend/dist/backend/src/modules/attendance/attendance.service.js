@@ -71,6 +71,11 @@ class AttendanceService {
                             lastName: true,
                         },
                     },
+                    entries: {
+                        select: {
+                            isPresent: true,
+                        },
+                    },
                     _count: {
                         select: { entries: true },
                     },
@@ -103,6 +108,7 @@ class AttendanceService {
                     createdAt: '',
                     updatedAt: '',
                 } : null,
+                entries: r.entries.map((e) => ({ isPresent: e.isPresent })),
                 _count: r._count,
             })),
             meta: {
@@ -202,6 +208,10 @@ class AttendanceService {
                     departmentId: record.departmentId,
                     createdById: '',
                     isActive: e.member.isActive,
+                    birthMonth: null,
+                    birthDay: null,
+                    phoneNumber: null,
+                    email: null,
                     createdAt: '',
                     updatedAt: '',
                 },
@@ -455,9 +465,9 @@ class AttendanceService {
         };
     }
     // Create attendance records for all active departments for a service day
-    async createRecordsForServiceDay(serviceType) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    async createRecordsForServiceDay(serviceType, serviceDate) {
+        const targetDate = serviceDate || new Date();
+        targetDate.setHours(0, 0, 0, 0);
         const departments = await prisma_1.prisma.department.findMany({
             where: { isActive: true },
             select: { id: true },
@@ -468,7 +478,7 @@ class AttendanceService {
                 where: {
                     departmentId_serviceDate_serviceType: {
                         departmentId: dept.id,
-                        serviceDate: today,
+                        serviceDate: targetDate,
                         serviceType,
                     },
                 },
@@ -477,7 +487,7 @@ class AttendanceService {
                 await prisma_1.prisma.attendanceRecord.create({
                     data: {
                         departmentId: dept.id,
-                        serviceDate: today,
+                        serviceDate: targetDate,
                         serviceType,
                         status: shared_1.SubmissionStatus.NOT_STARTED,
                     },

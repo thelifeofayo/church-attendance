@@ -34,6 +34,11 @@ export declare const config: {
         readonly pass: string;
         readonly from: string;
     };
+    readonly cloudinary: {
+        readonly cloudName: string;
+        readonly apiKey: string;
+        readonly apiSecret: string;
+    };
 };
 export declare function validateConfig(): void;
 //# sourceMappingURL=index.d.ts.map

@@ -18,7 +18,7 @@ router.use(requireAdminOrTeamHead());
 router.get(
   '/',
   validate({ query: listBroadcastsQuerySchema }),
-  broadcastsController.list
+  broadcastsController.list as any
 );
 
 router.post(

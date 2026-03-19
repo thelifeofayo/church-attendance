@@ -61,12 +61,19 @@ class AttendanceController {
     }
     async triggerRecordCreation(req, res, next) {
         try {
-            const { serviceType } = req.body;
-            const created = await attendance_service_1.attendanceService.createRecordsForServiceDay(serviceType);
+            const { serviceType, serviceDate } = req.body;
+            const date = serviceDate ? new Date(serviceDate) : undefined;
+            const created = await attendance_service_1.attendanceService.createRecordsForServiceDay(serviceType, date);
+            const dateStr = (date || new Date()).toLocaleDateString('en-GB', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            });
             res.json({
                 success: true,
                 data: { created },
-                message: `Created ${created} attendance records for ${serviceType}`,
+                message: `Created ${created} attendance records for ${serviceType} service on ${dateStr}`,
             });
         }
         catch (error) {

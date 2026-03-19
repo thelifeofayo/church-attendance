@@ -66,7 +66,7 @@ export class DepartmentsService {
         isActive: d.isActive,
         createdAt: d.createdAt.toISOString(),
         updatedAt: d.updatedAt.toISOString(),
-        team: d.team,
+        team: d.team as any,
         hod: d.hod ? {
           id: d.hod.id,
           email: d.hod.email,
@@ -142,7 +142,7 @@ export class DepartmentsService {
       isActive: department.isActive,
       createdAt: department.createdAt.toISOString(),
       updatedAt: department.updatedAt.toISOString(),
-      team: department.team,
+      team: department.team as any,
       hod: department.hod ? {
         id: department.hod.id,
         email: department.hod.email,
@@ -160,6 +160,10 @@ export class DepartmentsService {
         departmentId: department.id,
         createdById: '',
         isActive: m.isActive,
+        birthMonth: null,
+        birthDay: null,
+        phoneNumber: null,
+        email: null,
         createdAt: m.createdAt.toISOString(),
         updatedAt: '',
       })),

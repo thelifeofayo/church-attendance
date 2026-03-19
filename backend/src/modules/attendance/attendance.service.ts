@@ -107,7 +107,7 @@ export class AttendanceService {
         status: r.status as SubmissionStatus,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
-        department: r.department,
+        department: r.department as any,
         submittedBy: r.submittedBy ? {
           id: r.submittedBy.id,
           email: '',
@@ -118,7 +118,7 @@ export class AttendanceService {
           createdAt: '',
           updatedAt: '',
         } : null,
-        entries: r.entries.map((e) => ({ isPresent: e.isPresent })),
+        entries: r.entries.map((e) => ({ isPresent: e.isPresent })) as any,
         _count: r._count,
       })),
       meta: {
@@ -200,7 +200,7 @@ export class AttendanceService {
       status: record.status as SubmissionStatus,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-      department: record.department,
+      department: record.department as any,
       submittedBy: record.submittedBy ? {
         id: record.submittedBy.id,
         email: '',
@@ -226,6 +226,10 @@ export class AttendanceService {
           departmentId: record.departmentId,
           createdById: '',
           isActive: e.member.isActive,
+          birthMonth: null,
+          birthDay: null,
+          phoneNumber: null,
+          email: null,
           createdAt: '',
           updatedAt: '',
         },
