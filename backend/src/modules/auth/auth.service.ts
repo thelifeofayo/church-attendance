@@ -3,6 +3,8 @@ import { prisma } from '../../utils/prisma';
 import { hashPassword, comparePassword } from '../../utils/password';
 import { emailService } from '../../utils/email';
 import { config } from '../../config';
+import { createAuditLog } from '../../utils/auditLog';
+import { logger } from '../../utils/logger';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -99,6 +101,27 @@ export class AuthService {
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };
+
+    // Record login event in audit log.
+    // Intentionally NOT returned to the frontend (Users page won't render this).
+    try {
+      await createAuditLog({
+        userId: user.id,
+        userRole: user.role as Role,
+        action: 'UPDATE',
+        entityType: 'User',
+        entityId: user.id,
+        diff: {
+          lastLoginAt: {
+            old: null,
+            new: new Date().toISOString(),
+          },
+        },
+      });
+    } catch (err) {
+      // Login must not fail if audit logging fails.
+      logger.error(`Failed to create lastLogin audit log: ${err instanceof Error ? err.message : String(err)}`);
+    }
 
     return {
       user: userResponse,
