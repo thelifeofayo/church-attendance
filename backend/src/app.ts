@@ -21,6 +21,18 @@ import uploadsRoutes from './modules/uploads/uploads.routes';
 
 export function createApp(): Application {
   const app = express();
+  const allowedOrigins = new Set<string>(['http://localhost:5173', config.frontendUrl]);
+
+  try {
+    const frontendUrl = new URL(config.frontendUrl);
+    if (frontendUrl.hostname.startsWith('www.')) {
+      allowedOrigins.add(`${frontendUrl.protocol}//${frontendUrl.hostname.replace('www.', '')}`);
+    } else {
+      allowedOrigins.add(`${frontendUrl.protocol}//www.${frontendUrl.hostname}`);
+    }
+  } catch {
+    // Ignore invalid FRONTEND_URL values and rely on defaults.
+  }
 
   // Security middleware
   app.use(helmet());
@@ -28,7 +40,13 @@ export function createApp(): Application {
   // CORS
   app.use(
     cors({
-      origin: config.frontendUrl,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.has(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
