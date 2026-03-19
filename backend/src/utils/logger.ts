@@ -25,8 +25,8 @@ export const logger = winston.createLogger({
   ],
 });
 
-// Add file transport in production
-if (config.nodeEnv === 'production') {
+// Add file transport in production (skip in serverless environments like Vercel)
+if (config.nodeEnv === 'production' && !process.env.VERCEL) {
   logger.add(
     new winston.transports.File({
       filename: 'logs/error.log',
