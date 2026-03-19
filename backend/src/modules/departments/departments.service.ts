@@ -254,6 +254,9 @@ export class DepartmentsService {
       throw new NotFoundError('Department');
     }
 
+    const requestedTeamId = input.teamId;
+    const targetTeamId = requestedTeamId ?? existingDept.teamId;
+
     // Permission checks
     if (currentUser.role === Role.TEAM_HEAD && existingDept.teamId !== currentUser.teamId) {
       throw new ForbiddenError('Access denied to this department');
@@ -263,12 +266,25 @@ export class DepartmentsService {
       throw new ForbiddenError('Only Admins and Team Heads can update departments');
     }
 
+    // Team Heads can only move departments within their own team
+    if (currentUser.role === Role.TEAM_HEAD && requestedTeamId && requestedTeamId !== currentUser.teamId) {
+      throw new ForbiddenError('Access denied to change department team');
+    }
+
+    // If team is changing, verify the team exists
+    if (requestedTeamId && requestedTeamId !== existingDept.teamId) {
+      const team = await prisma.team.findUnique({ where: { id: requestedTeamId } });
+      if (!team) {
+        throw new NotFoundError('Team');
+      }
+    }
+
     // Check for duplicate name
     if (input.name) {
       const duplicateName = await prisma.department.findFirst({
         where: {
           name: { equals: input.name, mode: 'insensitive' },
-          teamId: existingDept.teamId,
+          teamId: targetTeamId,
           id: { not: id },
         },
       });
@@ -283,6 +299,7 @@ export class DepartmentsService {
       data: {
         ...(input.name && { name: input.name }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
+        ...(requestedTeamId && { teamId: requestedTeamId }),
       },
     });
 
@@ -291,10 +308,12 @@ export class DepartmentsService {
       {
         name: existingDept.name,
         isActive: existingDept.isActive,
+        teamId: existingDept.teamId,
       },
       {
         name: department.name,
         isActive: department.isActive,
+        teamId: department.teamId,
       }
     );
 

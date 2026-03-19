@@ -38,6 +38,7 @@ export function DepartmentsPage() {
   const [editing, setEditing] = React.useState<DepartmentWithDetails | null>(null);
   const [name, setName] = React.useState('');
   const [teamId, setTeamId] = React.useState(NO_SELECTION);
+  const [editHodId, setEditHodId] = React.useState(NO_SELECTION);
   const [search, setSearch] = React.useState('');
 
   const { data: departments, isLoading } = useQuery({
@@ -84,7 +85,18 @@ export function DepartmentsPage() {
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editing) return;
-      await api.patch(`/departments/${editing.id}`, { name });
+      const payload: Record<string, string | boolean> = { name };
+      if (isAdmin && teamId !== NO_SELECTION) {
+        payload.teamId = teamId;
+      }
+
+      await api.patch(`/departments/${editing.id}`, payload);
+
+      const currentHodId = editing.hodId ?? null;
+      const newHodId = editHodId === NO_SELECTION ? null : editHodId;
+      if (currentHodId !== newHodId) {
+        await api.patch(`/departments/${editing.id}/assign-hod`, { hodId: newHodId });
+      }
     },
     onSuccess: () => { invalidate(); setEditOpen(false); toast.success('Department updated'); },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -100,7 +112,11 @@ export function DepartmentsPage() {
 
   function openAdd() { setName(''); setTeamId(NO_SELECTION); setAddOpen(true); }
   function openEdit(d: DepartmentWithDetails) {
-    setEditing(d); setName(d.name); setTeamId(d.teamId || NO_SELECTION); setEditOpen(true);
+    setEditing(d);
+    setName(d.name);
+    setTeamId(d.teamId || NO_SELECTION);
+    setEditHodId(d.hodId || NO_SELECTION);
+    setEditOpen(true);
   }
 
   const filtered = React.useMemo(() => {
@@ -258,6 +274,34 @@ export function DepartmentsPage() {
             <div className="space-y-2">
               <Label>Department Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            {isAdmin && teams && (
+              <div className="space-y-2">
+                <Label>Team</Label>
+                <Select value={teamId} onValueChange={setTeamId}>
+                  <SelectTrigger><SelectValue placeholder="Select a team" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_SELECTION}>No team</SelectItem>
+                    {teams.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>HOD</Label>
+              <Select value={editHodId} onValueChange={setEditHodId}>
+                <SelectTrigger className="w-[170px] h-8 text-xs">
+                  <SelectValue placeholder="Assign HOD" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SELECTION}>No HOD</SelectItem>
+                  {availableHODs?.map((hod) => (
+                    <SelectItem key={hod.id} value={hod.id}>
+                      {hod.firstName} {hod.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
