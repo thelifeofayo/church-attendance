@@ -10,14 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import api, { getErrorMessage } from '@/lib/api';
-import { AttendanceRecordWithRelations, SubmissionStatus, Member } from 'shared';
+import { AttendanceRecordWithRelations, SubmissionStatus, Member, Role } from 'shared';
 import { formatDateWithDay } from '@/lib/utils';
 import { CheckCircle2, Users, ArrowLeft, ChevronDown } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
 
 export function AttendanceFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const { user } = useAuthStore();
+  const isHOD = user?.role === Role.HOD;
 
   const [attendance, setAttendance] = React.useState<Record<string, boolean>>({});
   const [absenceReasons, setAbsenceReasons] = React.useState<Record<string, string>>({});
@@ -39,7 +43,7 @@ export function AttendanceFormPage() {
       const response = await api.get<{ success: boolean; data: Member[] }>('/members');
       return response.data.data.filter(m => m.isActive);
     },
-    enabled: !!data && (!data.entries || data.entries.length === 0),
+    enabled: isHOD && !!data && (!data.entries || data.entries.length === 0),
   });
 
   React.useEffect(() => {
@@ -111,7 +115,7 @@ export function AttendanceFormPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
-  const needsMembers = data && (!data.entries || data.entries.length === 0);
+  const needsMembers = isHOD && data && (!data.entries || data.entries.length === 0);
   const isLoadingMembers = needsMembers && !departmentMembers;
 
   if (isLoading || isLoadingMembers) {
