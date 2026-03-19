@@ -2,10 +2,11 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 // Request interceptor - add auth token
@@ -33,7 +34,8 @@ api.interceptors.response.use(
       try {
         const refreshToken = useAuthStore.getState().refreshToken;
         if (refreshToken) {
-          const response = await axios.post('/api/auth/refresh', { refreshToken });
+          const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+          const response = await axios.post(`${baseUrl}/auth/refresh`, { refreshToken });
           const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
           useAuthStore.getState().setTokens(accessToken, newRefreshToken);
