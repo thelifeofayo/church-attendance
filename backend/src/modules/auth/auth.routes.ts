@@ -28,5 +28,6 @@ router.post(
   authController.changePassword
 );
 router.get('/me', authenticate, authController.me);
+router.get('/password-change-status', authenticate, authController.passwordChangeStatus);
 
 export default router;

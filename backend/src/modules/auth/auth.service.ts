@@ -362,6 +362,29 @@ export class AuthService {
       updatedAt: user.updatedAt.toISOString(),
     };
   }
+
+  async getPasswordChangeStatus(userId: string): Promise<{ requiresPasswordChange: boolean }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        resetToken: true,
+        resetTokenExpiry: true,
+        isActive: true,
+      },
+    });
+
+    if (!user || !user.isActive) {
+      return { requiresPasswordChange: false };
+    }
+
+    const requiresPasswordChange =
+      !!user.resetToken &&
+      user.resetToken.startsWith('DEFAULT_') &&
+      !!user.resetTokenExpiry &&
+      user.resetTokenExpiry > new Date();
+
+    return { requiresPasswordChange };
+  }
 }
 
 export const authService = new AuthService();

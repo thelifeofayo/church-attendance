@@ -68,7 +68,7 @@ export async function authenticate(
     // until they change it.
     if (requiresPasswordChange) {
       const isAuthBase = req.baseUrl === '/api/auth';
-      const allowedPaths = new Set(['/change-password', '/me', '/logout']);
+      const allowedPaths = new Set(['/change-password', '/me', '/logout', '/password-change-status']);
       if (!(isAuthBase && allowedPaths.has(req.path))) {
         throw new UnauthorizedError('Password change required');
       }

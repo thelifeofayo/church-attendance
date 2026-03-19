@@ -45,10 +45,29 @@ export function ChangePasswordPage() {
     mutationFn: async (data: ChangePasswordFormData) => {
       await api.post('/auth/change-password', data);
     },
-    onSuccess: () => {
-      setRequiresPasswordChange(false);
-      toast.success('Password updated');
-      navigate('/dashboard');
+    onSuccess: async () => {
+      try {
+        // Verify onboarding flag cleared in the DB.
+        const statusRes = await api.get<{
+          success: boolean;
+          data: { requiresPasswordChange: boolean };
+        }>('/auth/password-change-status');
+
+        setRequiresPasswordChange(statusRes.data.data.requiresPasswordChange);
+        if (statusRes.data.data.requiresPasswordChange) {
+          toast.success('Password updated, but change is still required.');
+          navigate('/change-password');
+          return;
+        }
+
+        toast.success('Password updated');
+        navigate('/dashboard');
+      } catch {
+        // If status check fails, still optimistically clear the flag.
+        setRequiresPasswordChange(false);
+        toast.success('Password updated');
+        navigate('/dashboard');
+      }
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });

@@ -141,6 +141,26 @@ export class AuthController {
       next(error);
     }
   }
+
+  async passwordChangeStatus(
+    req: Request,
+    res: Response<
+      ApiResponse<{
+        requiresPasswordChange: boolean;
+      }>
+    >,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const result = await authService.getPasswordChangeStatus(req.user!.userId);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();
