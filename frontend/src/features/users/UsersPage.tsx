@@ -233,6 +233,17 @@ export function UsersPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await api.patch(`/users/${userId}`, { isActive: true });
+    },
+    onSuccess: () => {
+      invalidateAll();
+      toast.success('User activated');
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
   function resetCreateForm() {
     setCreateForm({ email: '', firstName: '', lastName: '', role: '', teamId: '', departmentId: '', birthMonth: '', birthDay: '', phoneNumber: '' });
   }
@@ -447,6 +458,18 @@ export function UsersPage() {
                               onClick={() => toggleActiveMutation.mutate(u.id)}
                             >
                               <UserX className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+
+                          {!u.isActive && u.id !== currentUser?.id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-primary hover:text-primary"
+                              onClick={() => reactivateMutation.mutate(u.id)}
+                              disabled={reactivateMutation.isPending}
+                            >
+                              <Check className="h-3.5 w-3.5" />
                             </Button>
                           )}
                         </div>
