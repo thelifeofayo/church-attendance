@@ -8,39 +8,52 @@ import { Role } from 'shared';
 import { AuthLayout } from '@/components/layouts/AuthLayout';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 
-// Auth pages
-import { LoginPage } from '@/features/auth/LoginPage';
-import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
-import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
-import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
+// Lazy route pages (reduces initial bundle size / improves first-load time)
+const LoginPage = React.lazy(() =>
+  import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage }))
+);
+const ForgotPasswordPage = React.lazy(() =>
+  import('@/features/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage }))
+);
+const ResetPasswordPage = React.lazy(() =>
+  import('@/features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage }))
+);
+const ChangePasswordPage = React.lazy(() =>
+  import('@/features/auth/ChangePasswordPage').then((m) => ({ default: m.ChangePasswordPage }))
+);
 
-// Dashboard
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
+const DashboardPage = React.lazy(() =>
+  import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage }))
+);
 
-// Attendance
-import { AttendanceFormPage } from '@/features/attendance/AttendanceFormPage';
-import { AttendanceListPage } from '@/features/attendance/AttendanceListPage';
+const AttendanceFormPage = React.lazy(() =>
+  import('@/features/attendance/AttendanceFormPage').then((m) => ({ default: m.AttendanceFormPage }))
+);
+const AttendanceListPage = React.lazy(() =>
+  import('@/features/attendance/AttendanceListPage').then((m) => ({ default: m.AttendanceListPage }))
+);
 
-// Members
-import { MembersPage } from '@/features/members/MembersPage';
-
-// Teams
-import { TeamsPage } from '@/features/teams/TeamsPage';
-
-// Departments
-import { DepartmentsPage } from '@/features/departments/DepartmentsPage';
-
-// Reports
-import { ReportsPage } from '@/features/reports/ReportsPage';
-
-// Admin
-import { EmailSettingsPage } from '@/features/admin/EmailSettingsPage';
-
-// Broadcasts
-import { BroadcastsPage } from '@/features/broadcasts/BroadcastsPage';
-
-// Users
-import { UsersPage } from '@/features/users/UsersPage';
+const MembersPage = React.lazy(() =>
+  import('@/features/members/MembersPage').then((m) => ({ default: m.MembersPage }))
+);
+const TeamsPage = React.lazy(() =>
+  import('@/features/teams/TeamsPage').then((m) => ({ default: m.TeamsPage }))
+);
+const DepartmentsPage = React.lazy(() =>
+  import('@/features/departments/DepartmentsPage').then((m) => ({ default: m.DepartmentsPage }))
+);
+const ReportsPage = React.lazy(() =>
+  import('@/features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage }))
+);
+const EmailSettingsPage = React.lazy(() =>
+  import('@/features/admin/EmailSettingsPage').then((m) => ({ default: m.EmailSettingsPage }))
+);
+const BroadcastsPage = React.lazy(() =>
+  import('@/features/broadcasts/BroadcastsPage').then((m) => ({ default: m.BroadcastsPage }))
+);
+const UsersPage = React.lazy(() =>
+  import('@/features/users/UsersPage').then((m) => ({ default: m.UsersPage }))
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,133 +103,141 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          {/* Public routes */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <AuthLayout>
-                  <LoginPage />
-                </AuthLayout>
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              <PublicRoute>
-                <ForgotPasswordPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/reset-password"
-            element={
-              <PublicRoute>
-                <ResetPasswordPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/change-password"
-            element={
-              <ProtectedRoute>
-                <ChangePasswordPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Protected routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-
-            {/* Attendance routes - all roles */}
-            <Route path="attendance" element={<AttendanceListPage />} />
-            <Route path="attendance/:id" element={<AttendanceFormPage />} />
-
-            {/* Members - HOD only */}
+        <React.Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background">
+              Loading...
+            </div>
+          }
+        >
+          <Routes>
+            {/* Public routes */}
             <Route
-              path="members"
+              path="/login"
               element={
-                <ProtectedRoute allowedRoles={[Role.HOD]}>
-                  <MembersPage />
+                <PublicRoute>
+                  <AuthLayout>
+                    <LoginPage />
+                  </AuthLayout>
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPasswordPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRoute>
+                  <ResetPasswordPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/change-password"
+              element={
+                <ProtectedRoute>
+                  <ChangePasswordPage />
                 </ProtectedRoute>
               }
             />
 
-            {/* Teams - Admin only */}
+            {/* Protected routes */}
             <Route
-              path="teams"
+              path="/"
               element={
-                <ProtectedRoute allowedRoles={[Role.ADMIN]}>
-                  <TeamsPage />
+                <ProtectedRoute>
+                  <DashboardLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
 
-            {/* Users - Admin and Team Head */}
-            <Route
-              path="users"
-              element={
-                <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
-                  <UsersPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Attendance routes - all roles */}
+              <Route path="attendance" element={<AttendanceListPage />} />
+              <Route path="attendance/:id" element={<AttendanceFormPage />} />
 
-            {/* Departments - Admin and Team Head */}
-            <Route
-              path="departments"
-              element={
-                <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
-                  <DepartmentsPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Members - HOD only */}
+              <Route
+                path="members"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.HOD]}>
+                    <MembersPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Reports - Admin only */}
-            <Route
-              path="reports"
-              element={
-                <ProtectedRoute allowedRoles={[Role.ADMIN]}>
-                  <ReportsPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Teams - Admin only */}
+              <Route
+                path="teams"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+                    <TeamsPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Email Settings - Admin only */}
-            <Route
-              path="email-settings"
-              element={
-                <ProtectedRoute allowedRoles={[Role.ADMIN]}>
-                  <EmailSettingsPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Users - Admin and Team Head */}
+              <Route
+                path="users"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                    <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Broadcasts - Admin and Team Head */}
-            <Route
-              path="broadcasts"
-              element={
-                <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
-                  <BroadcastsPage />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
+              {/* Departments - Admin and Team Head */}
+              <Route
+                path="departments"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                    <DepartmentsPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Catch all */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+              {/* Reports - Admin only */}
+              <Route
+                path="reports"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Email Settings - Admin only */}
+              <Route
+                path="email-settings"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+                    <EmailSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Broadcasts - Admin and Team Head */}
+              <Route
+                path="broadcasts"
+                element={
+                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                    <BroadcastsPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+
+            {/* Catch all */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </React.Suspense>
       </BrowserRouter>
     </QueryClientProvider>
   );
