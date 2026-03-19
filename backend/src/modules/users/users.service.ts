@@ -1,10 +1,11 @@
 import { prisma } from '../../utils/prisma';
-import { hashPassword, generateTemporaryPassword } from '../../utils/password';
+import { hashPassword } from '../../utils/password';
 import { createAuditLog, generateDiff } from '../../utils/auditLog';
 import { ForbiddenError, NotFoundError, ConflictError, BadRequestError } from '../../utils/errors';
 import { Role, User, UserWithRelations, PaginatedResponse } from 'shared';
 import { CreateUserInput, UpdateUserInput, ListUsersQuery } from './users.schema';
 import { TokenPayload } from '../../utils/jwt';
+import { v4 as uuidv4 } from 'uuid';
 
 export class UsersService {
   async listUsers(
@@ -149,6 +150,8 @@ export class UsersService {
     input: CreateUserInput,
     currentUser: TokenPayload
   ): Promise<User & { temporaryPassword: string }> {
+    const DEFAULT_PASSWORD = 'Password123';
+
     const { email, firstName, lastName, role, teamId, departmentId, birthMonth, birthDay, phoneNumber } = input;
 
     // Permission checks
@@ -173,8 +176,13 @@ export class UsersService {
       throw new ConflictError('A user with this email already exists');
     }
 
-    // Generate temporary password
-    const tempPassword = generateTemporaryPassword();
+    // Always set the default onboarding password.
+    // We also set resetToken/resetTokenExpiry to force the user to change it on first login.
+    const tempPassword = DEFAULT_PASSWORD;
+    // Tag the onboarding default-password requirement so forgot-password flows
+    // don't accidentally force users to change on login.
+    const resetToken = `DEFAULT_${uuidv4()}`;
+    const resetTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
     const passwordHash = await hashPassword(tempPassword);
 
     const user = await prisma.user.create({
@@ -184,6 +192,8 @@ export class UsersService {
         lastName,
         role,
         passwordHash,
+        resetToken,
+        resetTokenExpiry,
         ...(birthMonth !== undefined && { birthMonth }),
         ...(birthDay !== undefined && { birthDay }),
         ...(phoneNumber !== undefined && { phoneNumber }),
@@ -245,9 +255,6 @@ export class UsersService {
       entityId: user.id,
       diff: { email, firstName, lastName, role },
     });
-
-    // TODO: Send welcome email with temporary password
-    console.log(`Welcome email for ${email}: temp password = ${tempPassword}`);
 
     return {
       id: user.id,

@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../../utils/prisma';
 import { hashPassword, comparePassword } from '../../utils/password';
+import { emailService } from '../../utils/email';
+import { config } from '../../config';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -41,6 +43,12 @@ export class AuthService {
     if (!isValidPassword) {
       throw new UnauthorizedError('Invalid email or password');
     }
+
+    const requiresPasswordChange =
+      !!user.resetToken &&
+      user.resetToken.startsWith('DEFAULT_') &&
+      !!user.resetTokenExpiry &&
+      user.resetTokenExpiry > new Date();
 
     // Determine team and department IDs based on role
     let teamId: string | null = null;
@@ -96,6 +104,7 @@ export class AuthService {
       user: userResponse,
       accessToken,
       refreshToken,
+      requiresPasswordChange,
     };
   }
 
@@ -178,32 +187,72 @@ export class AuthService {
     });
   }
 
-  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
+  async forgotPassword(
+    input: ForgotPasswordInput
+  ): Promise<{ resetToken?: string; resetUrl?: string }> {
     const { email } = input;
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-    });
-
-    // Always return success to prevent email enumeration
-    if (!user || !user.isActive) {
-      return;
-    }
-
-    const resetToken = uuidv4();
-    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetToken,
-        resetTokenExpiry,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+        resetToken: true,
       },
     });
 
-    // TODO: Send email with reset link
-    // For now, log the token (remove in production)
-    console.log(`Password reset token for ${email}: ${resetToken}`);
+    // If this is an onboarding user (default password), preserve the DEFAULT_ marker
+    // so the "requiresPasswordChange" gate still applies.
+    const isOnboardingDefaultPassword = user?.resetToken?.startsWith('DEFAULT_');
+    const resetToken = isOnboardingDefaultPassword ? `DEFAULT_${uuidv4()}` : uuidv4();
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    if (user && user.isActive) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetToken,
+          resetTokenExpiry,
+        },
+      });
+    }
+
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    // Token delivery mode (no email).
+    if (config.passwordReset.delivery === 'token' || !emailService.isConfigured()) {
+      // For local development, it can be helpful to still know the token.
+      if (config.nodeEnv !== 'production') {
+        // eslint-disable-next-line no-console
+        console.log(`Password reset token for ${email}: ${resetToken}`);
+      }
+      return { resetToken, resetUrl };
+    }
+
+    // Email delivery mode: only attempt sending if the user exists and is active.
+    if (user && user.isActive) {
+      const subject = 'Password reset request';
+      const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+          <p>Hello ${user.firstName},</p>
+          <p>You requested a password reset. Click the link below to set a new password:</p>
+          <p><a href="${resetUrl}">Reset Password</a></p>
+          <p>This link will expire in 1 hour. If you didn’t request this, you can ignore this email.</p>
+        </div>
+      `;
+
+      await emailService.sendEmail({
+        to: user.email,
+        subject,
+        html,
+        recipientName: `${user.firstName} ${user.lastName}`,
+      });
+    }
+
+    return {};
   }
 
   async resetPassword(input: ResetPasswordInput): Promise<void> {
@@ -257,10 +306,14 @@ export class AuthService {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
     });
 
-    // Invalidate all refresh tokens (force re-login)
+    // Invalidate all refresh tokens (force re-login / re-auth)
     await prisma.refreshToken.deleteMany({
       where: { userId },
     });

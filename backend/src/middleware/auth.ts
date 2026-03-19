@@ -43,6 +43,8 @@ export async function authenticate(
         email: true,
         role: true,
         isActive: true,
+        resetToken: true,
+        resetTokenExpiry: true,
         teamAsHead: {
           select: { id: true },
         },
@@ -54,6 +56,22 @@ export async function authenticate(
 
     if (!user || !user.isActive) {
       throw new UnauthorizedError('User not found or inactive');
+    }
+
+    const requiresPasswordChange =
+      !!user.resetToken &&
+      user.resetToken.startsWith('DEFAULT_') &&
+      !!user.resetTokenExpiry &&
+      user.resetTokenExpiry > new Date();
+
+    // If user is using the onboarding/default password, block access to the system
+    // until they change it.
+    if (requiresPasswordChange) {
+      const isAuthBase = req.baseUrl === '/api/auth';
+      const allowedPaths = new Set(['/change-password', '/me', '/logout']);
+      if (!(isAuthBase && allowedPaths.has(req.path))) {
+        throw new UnauthorizedError('Password change required');
+      }
     }
 
     // Add team and department IDs based on role

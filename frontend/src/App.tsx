@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { Role } from 'shared';
@@ -10,6 +10,9 @@ import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 
 // Auth pages
 import { LoginPage } from '@/features/auth/LoginPage';
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
+import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
 
 // Dashboard
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -54,10 +57,16 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, requiresPasswordChange } = useAuthStore();
+  const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  const isChangePasswordRoute = location.pathname === '/change-password';
+  if (requiresPasswordChange && !isChangePasswordRoute) {
+    return <Navigate to="/change-password" replace />;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
@@ -68,10 +77,10 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, requiresPasswordChange } = useAuthStore();
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={requiresPasswordChange ? '/change-password' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;
@@ -91,6 +100,30 @@ export default function App() {
                   <LoginPage />
                 </AuthLayout>
               </PublicRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <PublicRoute>
+                <ResetPasswordPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
             }
           />
 

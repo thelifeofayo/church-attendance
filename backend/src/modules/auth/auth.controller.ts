@@ -77,13 +77,19 @@ export class AuthController {
 
   async forgotPassword(
     req: Request<unknown, unknown, ForgotPasswordInput>,
-    res: Response<ApiResponse<void>>,
+    res: Response<
+      ApiResponse<{
+        resetToken?: string;
+        resetUrl?: string;
+      }>
+    >,
     next: NextFunction
   ): Promise<void> {
     try {
-      await authService.forgotPassword(req.body);
+      const result = await authService.forgotPassword(req.body);
       res.json({
         success: true,
+        data: result,
       });
     } catch (error) {
       next(error);

@@ -56,7 +56,9 @@ export function TeamsPage() {
   const { data: teams, isLoading } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: TeamWithDetails[] }>('/teams');
+      const res = await api.get<{ success: boolean; data: TeamWithDetails[] }>(
+        '/teams?page=1&limit=100&includeInactive=false'
+      );
       return res.data.data;
     },
   });

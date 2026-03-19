@@ -218,6 +218,7 @@ export interface LoginResponse {
   user: User;
   accessToken: string;
   refreshToken: string;
+  requiresPasswordChange: boolean;
 }
 
 export interface RefreshTokenRequest {

@@ -58,6 +58,13 @@ export const config = {
     from: process.env.EMAIL_FROM || 'Church Attendance <noreply@church.com>',
   },
 
+  // Password reset delivery mechanism
+  // - 'email': send reset link by SMTP when configured
+  // - 'token': never send email; return the reset URL/token in the API response
+  passwordReset: {
+    delivery: (process.env.PASSWORD_RESET_DELIVERY || 'email') as 'email' | 'token',
+  },
+
   // Cloudinary (image uploads)
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',

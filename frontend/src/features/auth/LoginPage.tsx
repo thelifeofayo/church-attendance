@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,8 +39,8 @@ export function LoginPage() {
       return response.data.data;
     },
     onSuccess: (data) => {
-      login(data.user, data.accessToken, data.refreshToken);
-      navigate('/dashboard');
+      login(data.user, data.accessToken, data.refreshToken, data.requiresPasswordChange);
+      navigate(data.requiresPasswordChange ? '/change-password' : '/dashboard');
     },
     onError: (err) => {
       setError(getErrorMessage(err));
@@ -110,6 +110,12 @@ export function LoginPage() {
               </span>
             )}
           </Button>
+
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm text-muted-foreground hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
         </form>
       </div>
     </AuthLayout>

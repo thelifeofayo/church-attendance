@@ -38,13 +38,27 @@ export function DepartmentsPage() {
   const [editing, setEditing] = React.useState<DepartmentWithDetails | null>(null);
   const [name, setName] = React.useState('');
   const [teamId, setTeamId] = React.useState(NO_SELECTION);
+  const [departmentTeamFilterId, setDepartmentTeamFilterId] = React.useState(NO_SELECTION);
+  const [teamSearch, setTeamSearch] = React.useState('');
   const [editHodId, setEditHodId] = React.useState(NO_SELECTION);
   const [search, setSearch] = React.useState('');
 
   const { data: departments, isLoading } = useQuery({
-    queryKey: ['departments'],
+    queryKey: ['departments', departmentTeamFilterId],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: DepartmentWithDetails[] }>('/departments');
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+        includeInactive: 'false',
+      });
+
+      if (departmentTeamFilterId !== NO_SELECTION) {
+        params.set('teamId', departmentTeamFilterId);
+      }
+
+      const res = await api.get<{ success: boolean; data: DepartmentWithDetails[] }>(
+        `/departments?${params.toString()}`
+      );
       return res.data.data;
     },
   });
@@ -52,11 +66,20 @@ export function DepartmentsPage() {
   const { data: teams } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: Team[] }>('/teams');
+      const res = await api.get<{ success: boolean; data: Team[] }>(
+        '/teams?page=1&limit=100&includeInactive=false'
+      );
       return res.data.data;
     },
     enabled: isAdmin,
   });
+
+  const filteredTeams = React.useMemo(() => {
+    if (!teams) return [];
+    if (!teamSearch.trim()) return teams;
+    const q = teamSearch.toLowerCase();
+    return teams.filter((t) => t.name.toLowerCase().includes(q));
+  }, [teams, teamSearch]);
 
   const { data: availableHODs } = useQuery({
     queryKey: ['users', 'hods'],
@@ -168,6 +191,35 @@ export function DepartmentsPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {isAdmin && teams && (
+            <div className="mb-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search teams..."
+                    value={teamSearch}
+                    onChange={(e) => setTeamSearch(e.target.value)}
+                    className="pl-8 h-9"
+                  />
+                </div>
+
+                <Select value={departmentTeamFilterId} onValueChange={setDepartmentTeamFilterId}>
+                  <SelectTrigger className="w-full h-9">
+                    <SelectValue placeholder="Filter by team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_SELECTION}>All teams</SelectItem>
+                    {filteredTeams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
           {filtered.length > 0 ? (
             <div className="rounded-md border">
               <Table>

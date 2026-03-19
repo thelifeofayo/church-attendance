@@ -7,11 +7,18 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  requiresPasswordChange: boolean;
 
   // Actions
   setUser: (user: User) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
+  login: (
+    user: User,
+    accessToken: string,
+    refreshToken: string,
+    requiresPasswordChange?: boolean
+  ) => void;
+  setRequiresPasswordChange: (requires: boolean) => void;
   logout: () => void;
 
   // Helpers
@@ -27,19 +34,22 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      requiresPasswordChange: false,
 
       setUser: (user) => set({ user }),
 
       setTokens: (accessToken, refreshToken) =>
         set({ accessToken, refreshToken }),
 
-      login: (user, accessToken, refreshToken) =>
+      login: (user, accessToken, refreshToken, requiresPasswordChange) =>
         set({
           user,
           accessToken,
           refreshToken,
           isAuthenticated: true,
+          requiresPasswordChange: requiresPasswordChange ?? get().requiresPasswordChange,
         }),
+      setRequiresPasswordChange: (requires) => set({ requiresPasswordChange: requires }),
 
       logout: () =>
         set({
@@ -47,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          requiresPasswordChange: false,
         }),
 
       isAdmin: () => get().user?.role === Role.ADMIN,
@@ -60,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        requiresPasswordChange: state.requiresPasswordChange,
       }),
     }
   )
