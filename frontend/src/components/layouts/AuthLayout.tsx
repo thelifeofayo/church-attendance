@@ -1,4 +1,5 @@
 import React from 'react';
+import { Church } from 'lucide-react';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -6,58 +7,47 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{
-        background: 'radial-gradient(ellipse at top, #1a1200 0%, #0a0a0a 50%, #000000 100%)',
-      }}
-    >
-      {/* Subtle grid overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(251,191,36,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(251,191,36,0.03) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-
-      {/* Church header */}
-      <div className="relative z-10 text-center mb-8 px-4">
-        <h1
-          className="font-black tracking-widest uppercase text-white"
-          style={{
-            fontSize: 'clamp(1rem, 4vw, 1.5rem)',
-            textShadow: '0 0 30px rgba(251,191,36,0.4)',
-            letterSpacing: '0.15em',
-          }}
-        >
-          Harvesters International Christian Centre
-          <br />
-          <span style={{ color: '#fbbf24' }}>Anthony Campus</span>
-        </h1>
-        <p
-          className="mt-3 font-semibold tracking-[0.3em] uppercase"
-          style={{
-            fontSize: 'clamp(0.65rem, 2vw, 0.8rem)',
-            color: 'rgba(251,191,36,0.7)',
-          }}
-        >
-          Workers Attendance
-        </p>
-        <div
-          className="mx-auto mt-4"
-          style={{
-            height: '1px',
-            width: '80px',
-            background: 'linear-gradient(90deg, transparent, #fbbf24, transparent)',
-          }}
-        />
+    <div className="min-h-screen flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background border-r border-border overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_hsl(var(--primary)/0.12)_0%,_transparent_60%)]" />
+        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-background to-transparent" />
+        <div className="relative z-10 text-center px-12 space-y-8">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/15 border border-primary/20 backdrop-blur-sm">
+            <Church className="h-10 w-10 text-primary" />
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Harvesters International
+            </h1>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Christian Centre
+            </h2>
+            <p className="text-primary font-semibold text-lg tracking-wide">
+              Anthony Campus
+            </p>
+          </div>
+          <div className="h-px w-20 mx-auto bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <p className="text-sm text-muted-foreground tracking-[0.2em] uppercase">
+            Workers Attendance System
+          </p>
+        </div>
       </div>
 
-      {/* Card */}
-      <div className="relative z-10 w-full max-w-md">
-        {children}
+      {/* Right panel — form */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-background">
+        <div className="lg:hidden text-center mb-10 space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary/15 border border-primary/20">
+            <Church className="h-7 w-7 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">
+              Harvesters International Christian Centre
+            </h1>
+            <p className="text-primary text-sm font-semibold mt-1">Anthony Campus</p>
+          </div>
+        </div>
+        <div className="w-full max-w-sm">{children}</div>
       </div>
     </div>
   );

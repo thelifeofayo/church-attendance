@@ -36,6 +36,9 @@ import { EmailSettingsPage } from '@/features/admin/EmailSettingsPage';
 // Broadcasts
 import { BroadcastsPage } from '@/features/broadcasts/BroadcastsPage';
 
+// Users
+import { UsersPage } from '@/features/users/UsersPage';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -123,6 +126,16 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={[Role.ADMIN]}>
                   <TeamsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Users - Admin and Team Head */}
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                  <UsersPage />
                 </ProtectedRoute>
               }
             />

@@ -4,26 +4,35 @@
 
 @layer base {
   :root {
-    --background: 0 0% 5%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 38 92% 50%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 85%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 38 92% 50%;
-    --accent-foreground: 0 0% 5%;
-    --destructive: 0 72% 51%;
+    --background: 222 47% 5%;
+    --foreground: 210 40% 96%;
+    --card: 222 47% 7%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 215 28% 12%;
+    --secondary-foreground: 210 40% 80%;
+    --muted: 215 28% 13%;
+    --muted-foreground: 215 20% 50%;
+    --accent: 215 28% 15%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 12%;
-    --ring: 38 92% 50%;
-    --radius: 0.5rem;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 5%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 98%;
+    --border: 215 28% 14%;
+    --input: 215 28% 14%;
+    --ring: 160 84% 39%;
+    --radius: 0.625rem;
+    --sidebar-width: 260px;
+    --sidebar-width-collapsed: 68px;
+    --header-height: 56px;
   }
 }
 
@@ -35,64 +44,61 @@
     color-scheme: dark;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: -0.011em;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
   }
 }
 
-/* Scrollbar styling */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(0 0% 8%);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 20%);
+  background: hsl(var(--muted));
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(38 92% 50% / 0.7);
+  background: hsl(var(--primary) / 0.4);
 }
 
-/* TipTap Editor Styles */
+/* Sonner toast overrides */
+[data-sonner-toaster] [data-sonner-toast] {
+  --normal-bg: hsl(var(--card));
+  --normal-border: hsl(var(--border));
+  --normal-text: hsl(var(--foreground));
+}
+
+/* Progress bar animation */
+@keyframes progress {
+  from { width: 0%; }
+}
+.animate-progress {
+  animation: progress 1s ease-out forwards;
+}
+
+/* TipTap Editor */
 .tiptap {
   outline: none;
 }
-
 .tiptap p.is-editor-empty:first-child::before {
-  color: #adb5bd;
+  color: hsl(var(--muted-foreground));
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
 }
-
-.tiptap p {
-  margin: 0.5em 0;
-}
-
-.tiptap ul,
-.tiptap ol {
-  padding-left: 1.5em;
-  margin: 0.5em 0;
-}
-
-.tiptap ul {
-  list-style-type: disc;
-}
-
-.tiptap ol {
-  list-style-type: decimal;
-}
-
-.tiptap img {
-  max-width: 100%;
-  height: auto;
-  margin: 0.5em 0;
-}
-
-.tiptap a {
-  color: #2563eb;
-  text-decoration: underline;
-}
+.tiptap p { margin: 0.5em 0; }
+.tiptap ul, .tiptap ol { padding-left: 1.5em; margin: 0.5em 0; }
+.tiptap ul { list-style-type: disc; }
+.tiptap ol { list-style-type: decimal; }
+.tiptap img { max-width: 100%; height: auto; margin: 0.5em 0; }
+.tiptap a { color: hsl(var(--primary)); text-decoration: underline; }

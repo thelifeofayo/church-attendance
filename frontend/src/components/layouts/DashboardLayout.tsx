@@ -3,11 +3,20 @@ import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Role } from 'shared';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Toaster } from 'sonner';
 import {
   LayoutDashboard,
   Users,
   Building2,
   UserCog,
+  UserPlus,
   ClipboardList,
   FileBarChart,
   LogOut,
@@ -15,241 +24,228 @@ import {
   X,
   Mail,
   Megaphone,
+  ChevronLeft,
+  Church,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
   roles: Role[];
+  group: 'main' | 'manage' | 'admin';
 }
 
 const navItems: NavItem[] = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: <LayoutDashboard className="h-5 w-5" />,
-    roles: [Role.ADMIN, Role.TEAM_HEAD, Role.HOD],
-  },
-  {
-    label: 'Teams',
-    href: '/teams',
-    icon: <Building2 className="h-5 w-5" />,
-    roles: [Role.ADMIN],
-  },
-  {
-    label: 'Departments',
-    href: '/departments',
-    icon: <Users className="h-5 w-5" />,
-    roles: [Role.ADMIN, Role.TEAM_HEAD],
-  },
-  {
-    label: 'Members',
-    href: '/members',
-    icon: <UserCog className="h-5 w-5" />,
-    roles: [Role.HOD],
-  },
-  {
-    label: 'Attendance',
-    href: '/attendance',
-    icon: <ClipboardList className="h-5 w-5" />,
-    roles: [Role.ADMIN, Role.TEAM_HEAD, Role.HOD],
-  },
-  {
-    label: 'Reports',
-    href: '/reports',
-    icon: <FileBarChart className="h-5 w-5" />,
-    roles: [Role.ADMIN],
-  },
-  {
-    label: 'Broadcasts',
-    href: '/broadcasts',
-    icon: <Megaphone className="h-5 w-5" />,
-    roles: [Role.ADMIN, Role.TEAM_HEAD],
-  },
-  {
-    label: 'Email Settings',
-    href: '/email-settings',
-    icon: <Mail className="h-5 w-5" />,
-    roles: [Role.ADMIN],
-  },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.HOD], group: 'main' },
+  { label: 'Attendance', href: '/attendance', icon: ClipboardList, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.HOD], group: 'main' },
+  { label: 'Teams', href: '/teams', icon: Building2, roles: [Role.ADMIN], group: 'manage' },
+  { label: 'Departments', href: '/departments', icon: Users, roles: [Role.ADMIN, Role.TEAM_HEAD], group: 'manage' },
+  { label: 'Users', href: '/users', icon: UserPlus, roles: [Role.ADMIN, Role.TEAM_HEAD], group: 'manage' },
+  { label: 'Members', href: '/members', icon: UserCog, roles: [Role.HOD], group: 'manage' },
+  { label: 'Reports', href: '/reports', icon: FileBarChart, roles: [Role.ADMIN], group: 'admin' },
+  { label: 'Broadcasts', href: '/broadcasts', icon: Megaphone, roles: [Role.ADMIN, Role.TEAM_HEAD], group: 'admin' },
+  { label: 'Email Settings', href: '/email-settings', icon: Mail, roles: [Role.ADMIN], group: 'admin' },
 ];
+
+const groupLabels: Record<string, string> = {
+  main: 'Overview',
+  manage: 'Management',
+  admin: 'Administration',
+};
 
 export function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [collapsed, setCollapsed] = React.useState(false);
 
-  const filteredNavItems = navItems.filter(
-    (item) => user && item.roles.includes(user.role)
-  );
+  const filteredItems = navItems.filter((item) => user && item.roles.includes(user.role));
 
-  const handleLogout = async () => {
+  const groups = React.useMemo(() => {
+    const g: Record<string, NavItem[]> = {};
+    for (const item of filteredItems) {
+      if (!g[item.group]) g[item.group] = [];
+      g[item.group].push(item);
+    }
+    return g;
+  }, [filteredItems]);
+
+  const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  return (
-    <div className="min-h-screen" style={{ background: '#0a0a0a' }}>
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+  const currentPageLabel =
+    filteredItems.find((item) => location.pathname.startsWith(item.href))?.label || 'Dashboard';
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        style={{
-          background: 'linear-gradient(180deg, #111111 0%, #0d0d0d 100%)',
-          borderRight: '1px solid rgba(251,191,36,0.1)',
-        }}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
+  return (
+    <TooltipProvider delayDuration={0}>
+      <div className="min-h-screen bg-background">
+        <Toaster
+          theme="dark"
+          position="top-right"
+          toastOptions={{
+            className: 'border border-border bg-card text-card-foreground',
+          }}
+        />
+
+        {sidebarOpen && (
           <div
-            className="flex items-center justify-between h-16 px-4"
-            style={{ borderBottom: '1px solid rgba(251,191,36,0.1)' }}
-          >
-            <Link to="/dashboard" className="flex items-center space-x-2">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
-                style={{
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  color: '#000',
-                }}
-              >
-                CA
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside
+          className={cn(
+            'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-all duration-200 ease-in-out lg:translate-x-0',
+            collapsed ? 'lg:w-[var(--sidebar-width-collapsed)]' : 'lg:w-[var(--sidebar-width)]',
+            sidebarOpen ? 'translate-x-0 w-[var(--sidebar-width)]' : '-translate-x-full'
+          )}
+        >
+          {/* Logo */}
+          <div className="flex h-14 items-center justify-between px-4 border-b border-border">
+            <Link to="/dashboard" className="flex items-center gap-2.5 overflow-hidden">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 border border-primary/25">
+                <Church className="h-4 w-4 text-primary" />
               </div>
-              <span className="text-sm font-semibold text-white tracking-wide">
-                Attendance
-              </span>
+              {!collapsed && (
+                <span className="text-sm font-semibold tracking-tight whitespace-nowrap">
+                  Harvesters Attendance
+                </span>
+              )}
             </Link>
             <button
-              className="lg:hidden text-gray-400 hover:text-white"
+              className="lg:hidden text-muted-foreground hover:text-foreground"
               onClick={() => setSidebarOpen(false)}
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {filteredNavItems.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-150"
-                  style={
-                    isActive
-                      ? {
-                          background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.1))',
-                          color: '#fbbf24',
-                          borderLeft: '2px solid #f59e0b',
-                        }
-                      : {
-                          color: 'rgba(255,255,255,0.55)',
-                          borderLeft: '2px solid transparent',
-                        }
-                  }
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.9)';
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+          <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+            {Object.entries(groups).map(([group, items]) => (
+              <div key={group}>
+                {!collapsed && (
+                  <p className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">
+                    {groupLabels[group]}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {items.map((item) => {
+                    const isActive = location.pathname === item.href ||
+                      (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+                    const Icon = item.icon;
+
+                    const link = (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all',
+                          isActive
+                            ? 'bg-primary/10 text-primary shadow-sm shadow-primary/5'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                          collapsed && 'justify-center px-2'
+                        )}
+                      >
+                        <Icon className={cn('h-[18px] w-[18px] shrink-0', isActive && 'text-primary')} />
+                        {!collapsed && <span>{item.label}</span>}
+                        {isActive && !collapsed && (
+                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                        )}
+                      </Link>
+                    );
+
+                    if (collapsed) {
+                      return (
+                        <Tooltip key={item.href}>
+                          <TooltipTrigger asChild>{link}</TooltipTrigger>
+                          <TooltipContent side="right">{item.label}</TooltipContent>
+                        </Tooltip>
+                      );
                     }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.55)';
-                      (e.currentTarget as HTMLElement).style.background = 'transparent';
-                    }
-                  }}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  {item.icon}
-                  <span className="text-sm font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
+                    return link;
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          {/* User info */}
-          <div
-            className="p-4"
-            style={{ borderTop: '1px solid rgba(251,191,36,0.1)' }}
-          >
-            <div className="flex items-center space-x-3 mb-3">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(217,119,6,0.15))',
-                  color: '#fbbf24',
-                  border: '1px solid rgba(251,191,36,0.2)',
-                }}
-              >
+          {/* Collapse toggle */}
+          <div className="hidden lg:block px-3 py-2 border-t border-border">
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="flex w-full items-center justify-center rounded-lg py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
+            </button>
+          </div>
+
+          {/* User area */}
+          <div className="border-t border-border p-3">
+            <div className={cn('flex items-center gap-2.5', collapsed && 'justify-center')}>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold ring-1 ring-primary/20">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs truncate" style={{ color: 'rgba(251,191,36,0.6)' }}>
-                  {user?.role}
-                </p>
-              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate capitalize">
+                    {user?.role?.replace('_', ' ').toLowerCase()}
+                  </p>
+                </div>
+              )}
+              {!collapsed && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Logout</TooltipContent>
+                </Tooltip>
+              )}
             </div>
-            <Button
-              variant="outline"
-              className="w-full text-sm"
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.6)',
-              }}
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Top bar */}
-        <header
-          className="sticky top-0 z-30 h-16 flex items-center px-4 lg:px-6"
-          style={{
-            background: 'rgba(10,10,10,0.95)',
-            borderBottom: '1px solid rgba(251,191,36,0.1)',
-            backdropFilter: 'blur(8px)',
-          }}
+        {/* Main content */}
+        <div
+          className={cn(
+            'transition-all duration-200',
+            collapsed ? 'lg:pl-[var(--sidebar-width-collapsed)]' : 'lg:pl-[var(--sidebar-width)]'
+          )}
         >
-          <button
-            className="lg:hidden mr-4 text-gray-400 hover:text-white"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="text-base font-semibold text-white">
-            {filteredNavItems.find((item) => item.href === location.pathname)
-              ?.label || 'Dashboard'}
-          </h1>
-        </header>
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 backdrop-blur-md px-4 lg:px-6">
+            <button
+              className="lg:hidden text-muted-foreground hover:text-foreground"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <Separator orientation="vertical" className="h-5 lg:hidden" />
+            <h1 className="text-sm font-semibold">{currentPageLabel}</h1>
+          </header>
 
-        {/* Page content */}
-        <main className="p-4 lg:p-6">
-          <Outlet />
-        </main>
+          <main className="p-4 lg:p-6 max-w-7xl animate-fade-in">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

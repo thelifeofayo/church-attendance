@@ -47,6 +47,7 @@ export const createAttendanceRecordSchema = z.object({
 
 export const triggerRecordCreationSchema = z.object({
   serviceType: z.nativeEnum(ServiceType),
+  serviceDate: z.string().refine((val) => !isNaN(Date.parse(val)), 'Invalid date').optional(),
 });
 
 export type SubmitAttendanceInput = z.infer<typeof submitAttendanceSchema>;

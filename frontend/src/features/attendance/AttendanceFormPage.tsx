@@ -1,12 +1,14 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import api, { getErrorMessage } from '@/lib/api';
 import { AttendanceRecordWithRelations, SubmissionStatus, Member } from 'shared';
 import { formatDateWithDay } from '@/lib/utils';
@@ -21,7 +23,6 @@ export function AttendanceFormPage() {
   const [absenceReasons, setAbsenceReasons] = React.useState<Record<string, string>>({});
   const [expandedMembers, setExpandedMembers] = React.useState<Record<string, boolean>>({});
   const [notes, setNotes] = React.useState('');
-  const [error, setError] = React.useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['attendance', id],
@@ -32,7 +33,6 @@ export function AttendanceFormPage() {
     enabled: !!id,
   });
 
-  // Fetch department members for new attendance records
   const { data: departmentMembers } = useQuery({
     queryKey: ['members'],
     queryFn: async () => {
@@ -42,10 +42,8 @@ export function AttendanceFormPage() {
     enabled: !!data && (!data.entries || data.entries.length === 0),
   });
 
-  // Initialize attendance state when data loads
   React.useEffect(() => {
     if (data?.entries && data.entries.length > 0) {
-      // Existing entries - populate from saved data
       const initialAttendance: Record<string, boolean> = {};
       const initialReasons: Record<string, string> = {};
       data.entries.forEach((entry) => {
@@ -58,7 +56,6 @@ export function AttendanceFormPage() {
       setAbsenceReasons(initialReasons);
       setNotes(data.notes || '');
     } else if (departmentMembers && departmentMembers.length > 0) {
-      // New record - initialize all members as absent (unchecked)
       const initialAttendance: Record<string, boolean> = {};
       departmentMembers.forEach((member) => {
         initialAttendance[member.id] = false;
@@ -79,9 +76,6 @@ export function AttendanceFormPage() {
         }
         return entry;
       });
-
-      console.log('Submitting attendance:', { entries, notes }); // Debug log
-
       await api.post(`/attendance/${id}/submit`, {
         entries,
         notes: notes || undefined,
@@ -90,11 +84,10 @@ export function AttendanceFormPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['hod-dashboard'] });
+      toast.success('Attendance submitted successfully');
       navigate('/dashboard');
     },
-    onError: (err) => {
-      setError(getErrorMessage(err));
-    },
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const updateMutation = useMutation({
@@ -104,7 +97,6 @@ export function AttendanceFormPage() {
         isPresent,
         absenceReason: !isPresent ? absenceReasons[memberId] || null : null,
       }));
-
       await api.patch(`/attendance/${id}`, {
         entries,
         notes: notes || null,
@@ -113,43 +105,39 @@ export function AttendanceFormPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['hod-dashboard'] });
+      toast.success('Attendance updated successfully');
       navigate('/dashboard');
     },
-    onError: (err) => {
-      setError(getErrorMessage(err));
-    },
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
-  // Show loading while fetching attendance record or members (for new records)
   const needsMembers = data && (!data.entries || data.entries.length === 0);
   const isLoadingMembers = needsMembers && !departmentMembers;
 
   if (isLoading || isLoadingMembers) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Skeleton className="h-8 w-24" />
+        <Skeleton className="h-64" />
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center text-red-500 p-4">
+      <div className="text-center text-destructive p-8">
         Attendance record not found
       </div>
     );
   }
 
-  // Use entries members if available, otherwise use department members
   const members: Member[] = (data.entries && data.entries.length > 0)
     ? data.entries.map((e) => e.member).filter((m): m is Member => !!m)
     : (departmentMembers || []);
 
-  // Debug: Log members to see their IDs
-  console.log('Members:', members.map(m => ({ id: m.id, name: `${m.firstName} ${m.lastName}` })));
-  console.log('Attendance state:', attendance);
   const presentCount = Object.values(attendance).filter(Boolean).length;
   const totalCount = members.length;
+  const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
   const isSubmitted = data.status === SubmissionStatus.SUBMITTED;
   const isLocked = data.isLocked;
   const canEdit = !isLocked;
@@ -158,32 +146,13 @@ export function AttendanceFormPage() {
   const toggleMember = (memberId: string) => {
     if (!canEdit) return;
     const newValue = !attendance[memberId];
-    setAttendance((prev) => ({
-      ...prev,
-      [memberId]: newValue,
-    }));
-    // Auto-expand when marking absent
+    setAttendance((prev) => ({ ...prev, [memberId]: newValue }));
     if (!newValue) {
       setExpandedMembers((prev) => ({ ...prev, [memberId]: true }));
     }
   };
 
-  const toggleExpanded = (memberId: string) => {
-    setExpandedMembers((prev) => ({
-      ...prev,
-      [memberId]: !prev[memberId],
-    }));
-  };
-
-  const setAbsenceReason = (memberId: string, reason: string) => {
-    setAbsenceReasons((prev) => ({
-      ...prev,
-      [memberId]: reason,
-    }));
-  };
-
   const handleSubmit = () => {
-    setError(null);
     if (isSubmitted) {
       updateMutation.mutate();
     } else {
@@ -193,7 +162,7 @@ export function AttendanceFormPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <Button variant="ghost" onClick={() => navigate(-1)}>
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </Button>
@@ -202,19 +171,17 @@ export function AttendanceFormPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>
-                {data.serviceType} Attendance
+              <CardTitle className="text-lg capitalize">
+                {data.serviceType.toLowerCase()} Attendance
               </CardTitle>
               <CardDescription>
-                {data.department?.name} - {formatDateWithDay(data.serviceDate)}
+                {data.department?.name} — {formatDateWithDay(data.serviceDate)}
               </CardDescription>
             </div>
             <Badge
               variant={
-                data.status === SubmissionStatus.SUBMITTED
-                  ? 'success'
-                  : data.status === SubmissionStatus.LOCKED
-                  ? 'outline'
+                data.status === SubmissionStatus.SUBMITTED ? 'success'
+                  : data.status === SubmissionStatus.LOCKED ? 'outline'
                   : 'secondary'
               }
             >
@@ -222,30 +189,21 @@ export function AttendanceFormPage() {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {/* Summary */}
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg mb-6">
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
               <span className="text-sm text-muted-foreground">Attendance</span>
             </div>
-            <div className="text-lg font-semibold">
-              {presentCount} / {totalCount}
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0}%)
-              </span>
+            <div className="text-right">
+              <span className="text-2xl font-bold">{presentCount}/{totalCount}</span>
+              <span className="text-sm text-muted-foreground ml-2">({percentage}%)</span>
             </div>
           </div>
 
-          {/* Error message */}
-          {error && (
-            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md mb-4">
-              {error}
-            </div>
-          )}
-
           {/* Member list */}
-          <div className="space-y-2 mb-6">
+          <div className="space-y-1.5">
             {members.map((member) => {
               const isPresent = attendance[member.id];
               const isExpanded = expandedMembers[member.id];
@@ -253,61 +211,56 @@ export function AttendanceFormPage() {
               return (
                 <div
                   key={member.id}
-                  className={`rounded-lg border transition-colors ${
+                  className={`rounded-lg border transition-all ${
                     isPresent
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-white'
-                  } ${!canEdit ? 'opacity-60' : ''}`}
+                      ? 'bg-primary/5 border-primary/20'
+                      : 'bg-card border-border'
+                  } ${!canEdit ? 'opacity-50' : ''}`}
                 >
                   <div
-                    className={`flex items-center justify-between p-3 cursor-pointer ${
-                      canEdit ? 'hover:bg-gray-50' : 'cursor-not-allowed'
-                    }`}
+                    className={`flex items-center justify-between p-3 ${
+                      canEdit ? 'cursor-pointer hover:bg-accent/50' : 'cursor-not-allowed'
+                    } rounded-lg transition-colors`}
                     onClick={() => toggleMember(member.id)}
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                           isPresent
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-200 text-gray-600'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-muted-foreground'
                         }`}
                       >
                         {isPresent ? (
-                          <CheckCircle2 className="h-5 w-5" />
+                          <CheckCircle2 className="h-4 w-4" />
                         ) : (
-                          <span className="text-sm font-medium">
-                            {member.firstName[0]}
-                          </span>
+                          member.firstName[0]
                         )}
                       </div>
                       <div>
-                        <span className="font-medium">
+                        <span className="font-medium text-sm">
                           {member.firstName} {member.lastName}
                         </span>
                         {!isPresent && absenceReasons[member.id] && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground">
                             Reason: {absenceReasons[member.id]}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       {!isPresent && canEdit && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
+                          className="h-7 w-7 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleExpanded(member.id);
+                            setExpandedMembers((prev) => ({ ...prev, [member.id]: !prev[member.id] }));
                           }}
                         >
-                          <ChevronDown
-                            className={`h-4 w-4 transition-transform ${
-                              isExpanded ? 'rotate-180' : ''
-                            }`}
-                          />
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </Button>
                       )}
                       <Switch
@@ -319,17 +272,16 @@ export function AttendanceFormPage() {
                     </div>
                   </div>
 
-                  {/* Absence reason input - shown when absent and expanded */}
                   {!isPresent && isExpanded && canEdit && (
                     <div className="px-3 pb-3 pt-0">
                       <div className="ml-11">
                         <Input
                           placeholder="Reason for absence (optional)"
                           value={absenceReasons[member.id] || ''}
-                          onChange={(e) => setAbsenceReason(member.id, e.target.value)}
+                          onChange={(e) => setAbsenceReasons((prev) => ({ ...prev, [member.id]: e.target.value }))}
                           maxLength={200}
                           onClick={(e) => e.stopPropagation()}
-                          className="text-sm"
+                          className="text-sm h-8"
                         />
                       </div>
                     </div>
@@ -340,7 +292,7 @@ export function AttendanceFormPage() {
           </div>
 
           {/* Notes */}
-          <div className="space-y-2 mb-6">
+          <div className="space-y-2">
             <Label htmlFor="notes">Notes (optional)</Label>
             <Input
               id="notes"
@@ -350,30 +302,26 @@ export function AttendanceFormPage() {
               maxLength={300}
               disabled={!canEdit}
             />
-            <p className="text-xs text-muted-foreground">{notes.length}/300 characters</p>
+            <p className="text-[11px] text-muted-foreground">{notes.length}/300 characters</p>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-4">
-            <Button variant="outline" onClick={() => navigate(-1)}>
-              Cancel
-            </Button>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Cancel</Button>
             <Button
+              size="sm"
               onClick={handleSubmit}
               disabled={!canEdit || !hasChanges || submitMutation.isPending || updateMutation.isPending}
             >
               {submitMutation.isPending || updateMutation.isPending
                 ? 'Saving...'
-                : isSubmitted
-                ? 'Update Attendance'
-                : 'Submit Attendance'}
+                : isSubmitted ? 'Update Attendance' : 'Submit Attendance'}
             </Button>
           </div>
 
-          {/* Locked notice */}
           {isLocked && (
-            <p className="text-sm text-muted-foreground text-center mt-4">
-              This attendance record is locked. Contact the Ministry Team for any corrections.
+            <p className="text-xs text-muted-foreground text-center">
+              This record is locked. Contact the Ministry Team for corrections.
             </p>
           )}
         </CardContent>

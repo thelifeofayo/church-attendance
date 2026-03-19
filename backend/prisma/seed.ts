@@ -56,6 +56,20 @@ async function main() {
   });
   console.log('Created admin user:', admin.email);
 
+  const ayobamiPasswordHash = await bcrypt.hash('Ayobami1999@@', 12);
+  const ayobami = await prisma.user.upsert({
+    where: { email: 'ajibadeayobami41@gmail.com' },
+    update: { passwordHash: ayobamiPasswordHash, role: Role.ADMIN },
+    create: {
+      email: 'ajibadeayobami41@gmail.com',
+      passwordHash: ayobamiPasswordHash,
+      firstName: 'Ayobami',
+      lastName: 'Ajibade',
+      role: Role.ADMIN,
+    },
+  });
+  console.log('Created admin user:', ayobami.email);
+
   // Create teams (find or create)
   const findOrCreateTeam = async (name: string) => {
     const existing = await prisma.team.findFirst({ where: { name, organisationId: org.id } });

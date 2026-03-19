@@ -81,17 +81,24 @@ export class AttendanceController {
   }
 
   async triggerRecordCreation(
-    req: Request<unknown, unknown, { serviceType: ServiceType }>,
+    req: Request<unknown, unknown, { serviceType: ServiceType; serviceDate?: string }>,
     res: Response<ApiResponse<{ created: number }>>,
     next: NextFunction
   ): Promise<void> {
     try {
-      const { serviceType } = req.body;
-      const created = await attendanceService.createRecordsForServiceDay(serviceType);
+      const { serviceType, serviceDate } = req.body;
+      const date = serviceDate ? new Date(serviceDate) : undefined;
+      const created = await attendanceService.createRecordsForServiceDay(serviceType, date);
+      const dateStr = (date || new Date()).toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
       res.json({
         success: true,
         data: { created },
-        message: `Created ${created} attendance records for ${serviceType}`,
+        message: `Created ${created} attendance records for ${serviceType} service on ${dateStr}`,
       });
     } catch (error) {
       next(error);

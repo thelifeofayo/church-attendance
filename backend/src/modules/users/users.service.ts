@@ -64,8 +64,19 @@ export class UsersService {
           lastName: true,
           role: true,
           isActive: true,
+          birthMonth: true,
+          birthDay: true,
+          phoneNumber: true,
           createdAt: true,
           updatedAt: true,
+          teamAsHead: { select: { id: true, name: true } },
+          departmentAsHOD: {
+            select: {
+              id: true,
+              name: true,
+              team: { select: { id: true, name: true } },
+            },
+          },
         },
       }),
       prisma.user.count({ where }),
@@ -137,8 +148,8 @@ export class UsersService {
   async createUser(
     input: CreateUserInput,
     currentUser: TokenPayload
-  ): Promise<User> {
-    const { email, firstName, lastName, role, teamId, departmentId } = input;
+  ): Promise<User & { temporaryPassword: string }> {
+    const { email, firstName, lastName, role, teamId, departmentId, birthMonth, birthDay, phoneNumber } = input;
 
     // Permission checks
     if (currentUser.role === Role.TEAM_HEAD) {
@@ -166,7 +177,6 @@ export class UsersService {
     const tempPassword = generateTemporaryPassword();
     const passwordHash = await hashPassword(tempPassword);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
@@ -174,6 +184,9 @@ export class UsersService {
         lastName,
         role,
         passwordHash,
+        ...(birthMonth !== undefined && { birthMonth }),
+        ...(birthDay !== undefined && { birthDay }),
+        ...(phoneNumber !== undefined && { phoneNumber }),
       },
     });
 
@@ -243,8 +256,12 @@ export class UsersService {
       lastName: user.lastName,
       role: user.role as Role,
       isActive: user.isActive,
+      birthMonth: user.birthMonth,
+      birthDay: user.birthDay,
+      phoneNumber: user.phoneNumber,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
+      temporaryPassword: tempPassword,
     };
   }
 
@@ -291,6 +308,9 @@ export class UsersService {
         ...(input.lastName && { lastName: input.lastName }),
         ...(input.email && { email: input.email.toLowerCase() }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
+        ...(input.birthMonth !== undefined && { birthMonth: input.birthMonth }),
+        ...(input.birthDay !== undefined && { birthDay: input.birthDay }),
+        ...(input.phoneNumber !== undefined && { phoneNumber: input.phoneNumber }),
       },
     });
 
@@ -328,6 +348,9 @@ export class UsersService {
       lastName: user.lastName,
       role: user.role as Role,
       isActive: user.isActive,
+      birthMonth: user.birthMonth,
+      birthDay: user.birthDay,
+      phoneNumber: user.phoneNumber,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };

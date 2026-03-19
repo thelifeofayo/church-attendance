@@ -8,9 +8,11 @@ export const createUserSchema = z.object({
   role: z.nativeEnum(Role),
   teamId: z.string().uuid().optional(),
   departmentId: z.string().uuid().optional(),
+  birthMonth: z.number().int().min(1).max(12).optional(),
+  birthDay: z.number().int().min(1).max(31).optional(),
+  phoneNumber: z.string().max(20).optional(),
 }).refine(
   (data) => {
-    // Team Head must have a teamId
     if (data.role === Role.TEAM_HEAD && !data.teamId) {
       return false;
     }
@@ -24,6 +26,9 @@ export const updateUserSchema = z.object({
   lastName: z.string().min(1).max(100).optional(),
   email: z.string().email().optional(),
   isActive: z.boolean().optional(),
+  birthMonth: z.number().int().min(1).max(12).nullable().optional(),
+  birthDay: z.number().int().min(1).max(31).nullable().optional(),
+  phoneNumber: z.string().max(20).nullable().optional(),
 });
 
 export const listUsersQuerySchema = z.object({

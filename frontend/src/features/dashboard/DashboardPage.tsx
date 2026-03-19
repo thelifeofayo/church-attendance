@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Role } from 'shared';
 import { HODDashboard } from './HODDashboard';

@@ -1,38 +1,26 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PageHeader } from '@/components/shared/page-header';
+import { StatCard } from '@/components/shared/stat-card';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import api, { getErrorMessage } from '@/lib/api';
 import { Department, Team, User, Role } from 'shared';
 import { useAuthStore } from '@/stores/authStore';
-import { Plus, Pencil, Building2, Users } from 'lucide-react';
+import { Plus, Pencil, Building2, Users, Search } from 'lucide-react';
+
+const NO_SELECTION = '__none__';
 
 interface DepartmentWithDetails extends Department {
   hod?: User | null;
@@ -40,36 +28,31 @@ interface DepartmentWithDetails extends Department {
   _count?: { members: number };
 }
 
-interface DepartmentFormData {
-  name: string;
-  teamId?: string;
-  hodId?: string;
-}
-
 export function DepartmentsPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [selectedDepartment, setSelectedDepartment] = React.useState<DepartmentWithDetails | null>(null);
-  const [formData, setFormData] = React.useState<DepartmentFormData>({ name: '' });
-  const [error, setError] = React.useState<string | null>(null);
-
   const isAdmin = user?.role === Role.ADMIN;
+
+  const [addOpen, setAddOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<DepartmentWithDetails | null>(null);
+  const [name, setName] = React.useState('');
+  const [teamId, setTeamId] = React.useState(NO_SELECTION);
+  const [search, setSearch] = React.useState('');
 
   const { data: departments, isLoading } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; data: DepartmentWithDetails[] }>('/departments');
-      return response.data.data;
+      const res = await api.get<{ success: boolean; data: DepartmentWithDetails[] }>('/departments');
+      return res.data.data;
     },
   });
 
   const { data: teams } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; data: Team[] }>('/teams');
-      return response.data.data;
+      const res = await api.get<{ success: boolean; data: Team[] }>('/teams');
+      return res.data.data;
     },
     enabled: isAdmin,
   });
@@ -77,301 +60,207 @@ export function DepartmentsPage() {
   const { data: availableHODs } = useQuery({
     queryKey: ['users', 'hods'],
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; data: User[] }>('/users?role=HOD');
-      return response.data.data;
+      const res = await api.get<{ success: boolean; data: User[] }>('/users?role=HOD');
+      return res.data.data;
     },
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['departments'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['team-head-dashboard'] });
+  };
+
   const createMutation = useMutation({
-    mutationFn: async (data: DepartmentFormData) => {
-      await api.post('/departments', data);
+    mutationFn: async () => {
+      const payload: Record<string, string> = { name };
+      if (teamId !== NO_SELECTION) payload.teamId = teamId;
+      await api.post('/departments', payload);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['team-head-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
-      setIsAddDialogOpen(false);
-      resetForm();
-    },
-    onError: (err) => {
-      setError(getErrorMessage(err));
-    },
+    onSuccess: () => { invalidate(); setAddOpen(false); toast.success('Department created'); },
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<DepartmentFormData> }) => {
-      await api.patch(`/departments/${id}`, data);
+    mutationFn: async () => {
+      if (!editing) return;
+      await api.patch(`/departments/${editing.id}`, { name });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-      setIsEditDialogOpen(false);
-      resetForm();
-    },
-    onError: (err) => {
-      setError(getErrorMessage(err));
-    },
+    onSuccess: () => { invalidate(); setEditOpen(false); toast.success('Department updated'); },
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const assignHODMutation = useMutation({
     mutationFn: async ({ id, hodId }: { id: string; hodId: string | null }) => {
       await api.patch(`/departments/${id}/assign-hod`, { hodId });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-    },
-    onError: (err) => {
-      setError(getErrorMessage(err));
-    },
+    onSuccess: () => { invalidate(); toast.success('HOD assignment updated'); },
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
-  const resetForm = () => {
-    setFormData({ name: '' });
-    setError(null);
-  };
+  function openAdd() { setName(''); setTeamId(NO_SELECTION); setAddOpen(true); }
+  function openEdit(d: DepartmentWithDetails) {
+    setEditing(d); setName(d.name); setTeamId(d.teamId || NO_SELECTION); setEditOpen(true);
+  }
 
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    createMutation.mutate(formData);
-  };
+  const filtered = React.useMemo(() => {
+    if (!departments) return [];
+    if (!search.trim()) return departments;
+    const q = search.toLowerCase();
+    return departments.filter((d) =>
+      d.name.toLowerCase().includes(q) ||
+      d.team?.name?.toLowerCase().includes(q) ||
+      d.hod?.firstName?.toLowerCase().includes(q) ||
+      d.hod?.lastName?.toLowerCase().includes(q)
+    );
+  }, [departments, search]);
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDepartment) return;
-    setError(null);
-    updateMutation.mutate({ id: selectedDepartment.id, data: { name: formData.name } });
-  };
-
-  const handleHODChange = (departmentId: string, hodId: string | null) => {
-    assignHODMutation.mutate({ id: departmentId, hodId });
-  };
-
-  const openEditDialog = (department: DepartmentWithDetails) => {
-    setSelectedDepartment(department);
-    setFormData({
-      name: department.name,
-      teamId: department.teamId,
-      hodId: department.hodId || undefined,
-    });
-    setError(null);
-    setIsEditDialogOpen(true);
-  };
+  const activeCount = departments?.filter((d) => d.isActive).length ?? 0;
+  const withHODCount = departments?.filter((d) => d.hodId).length ?? 0;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid gap-4 sm:grid-cols-2"><Skeleton className="h-28" /><Skeleton className="h-28" /></div>
+        <Skeleton className="h-96" />
       </div>
     );
   }
 
-  const activeDepartments = departments?.filter((d) => d.isActive) || [];
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Departments Management</h1>
-          <p className="text-muted-foreground">
-            {isAdmin ? 'Manage all departments across teams' : 'Manage departments in your team'}
-          </p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Department
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Department</DialogTitle>
-              <DialogDescription>
-                Add a new department. You can assign an HOD later.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddSubmit}>
-              <div className="space-y-4 py-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">{error}</div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="name">Department Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g., Choir"
-                    required
-                  />
-                </div>
-                {isAdmin && teams && (
-                  <div className="space-y-2">
-                    <Label htmlFor="team">Team</Label>
-                    <Select
-                      value={formData.teamId || ''}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, teamId: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a team" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teams.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Creating...' : 'Create Department'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <PageHeader
+        title="Departments"
+        description={isAdmin ? 'Manage all departments across teams' : 'Manage departments in your team'}
+        action={<Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Department</Button>}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatCard title="Active Departments" value={activeCount} icon={Building2} />
+        <StatCard title="With HODs" value={withHODCount} icon={Users} />
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Departments</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeDepartments.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">With HODs</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {activeDepartments.filter((d) => d.hodId).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Departments Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Departments</CardTitle>
-          <CardDescription>
-            {departments?.length || 0} departments total
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-base">All Departments</CardTitle>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9" />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {departments && departments.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Department Name</TableHead>
-                  {isAdmin && <TableHead>Team</TableHead>}
-                  <TableHead>HOD</TableHead>
-                  <TableHead className="text-center">Members</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {departments.map((department) => (
-                  <TableRow key={department.id}>
-                    <TableCell className="font-medium">{department.name}</TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        {department.team?.name || (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Select
-                        value={department.hodId || 'none'}
-                        onValueChange={(value) =>
-                          handleHODChange(department.id, value === 'none' ? null : value)
-                        }
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Assign HOD" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No HOD</SelectItem>
-                          {availableHODs?.map((hod) => (
-                            <SelectItem key={hod.id} value={hod.id}>
-                              {hod.firstName} {hod.lastName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {department._count?.members || 0}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={department.isActive ? 'success' : 'secondary'}>
-                        {department.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(department)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+          {filtered.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Department</TableHead>
+                    {isAdmin && <TableHead>Team</TableHead>}
+                    <TableHead>HOD</TableHead>
+                    <TableHead className="text-center">Members</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No departments yet. Create your first department to get started.
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((dept) => (
+                    <TableRow key={dept.id} className="group">
+                      <TableCell className="font-medium">{dept.name}</TableCell>
+                      {isAdmin && <TableCell className="text-muted-foreground">{dept.team?.name || '—'}</TableCell>}
+                      <TableCell>
+                        <Select
+                          value={dept.hodId || NO_SELECTION}
+                          onValueChange={(v) => assignHODMutation.mutate({ id: dept.id, hodId: v === NO_SELECTION ? null : v })}
+                        >
+                          <SelectTrigger className="w-[170px] h-8 text-xs">
+                            <SelectValue placeholder="Assign HOD" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NO_SELECTION}>No HOD</SelectItem>
+                            {availableHODs?.map((hod) => (
+                              <SelectItem key={hod.id} value={hod.id}>{hod.firstName} {hod.lastName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-center">{dept._count?.members || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant={dept.isActive ? 'outline' : 'secondary'} className={dept.isActive ? 'border-primary/30 text-primary' : ''}>
+                          {dept.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100" onClick={() => openEdit(dept)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
+          ) : (
+            <EmptyState
+              icon={Building2}
+              title={search ? 'No departments found' : 'No departments yet'}
+              description={search ? 'Try adjusting your search' : 'Create your first department to get started.'}
+              action={!search ? <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Department</Button> : undefined}
+            />
           )}
         </CardContent>
       </Card>
 
+      {/* Add Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Department</DialogTitle>
+            <DialogDescription>Add a new department. You can assign an HOD later.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Department Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Choir" required />
+            </div>
+            {isAdmin && teams && (
+              <div className="space-y-2">
+                <Label>Team</Label>
+                <Select value={teamId} onValueChange={setTeamId}>
+                  <SelectTrigger><SelectValue placeholder="Select a team" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_SELECTION}>No team</SelectItem>
+                    {teams.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Creating...' : 'Create Department'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Department</DialogTitle>
             <DialogDescription>Update department information.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit}>
-            <div className="space-y-4 py-4">
-              {error && (
-                <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">{error}</div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="editName">Department Name</Label>
-                <Input
-                  id="editName"
-                  value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
+          <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Department Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={updateMutation.isPending}>
                 {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>

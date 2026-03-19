@@ -523,9 +523,9 @@ export class AttendanceService {
   }
 
   // Create attendance records for all active departments for a service day
-  async createRecordsForServiceDay(serviceType: ServiceType): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  async createRecordsForServiceDay(serviceType: ServiceType, serviceDate?: Date): Promise<number> {
+    const targetDate = serviceDate || new Date();
+    targetDate.setHours(0, 0, 0, 0);
 
     const departments = await prisma.department.findMany({
       where: { isActive: true },
@@ -539,7 +539,7 @@ export class AttendanceService {
         where: {
           departmentId_serviceDate_serviceType: {
             departmentId: dept.id,
-            serviceDate: today,
+            serviceDate: targetDate,
             serviceType,
           },
         },
@@ -549,7 +549,7 @@ export class AttendanceService {
         await prisma.attendanceRecord.create({
           data: {
             departmentId: dept.id,
-            serviceDate: today,
+            serviceDate: targetDate,
             serviceType,
             status: SubmissionStatus.NOT_STARTED,
           },

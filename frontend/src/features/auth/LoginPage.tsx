@@ -8,10 +8,10 @@ import { AuthLayout } from '@/components/layouts/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
 import api, { getErrorMessage } from '@/lib/api';
 import { LoginResponse } from 'shared';
+import { LogIn } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -54,70 +54,64 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <Card
-        style={{
-          background: 'linear-gradient(135deg, #111111 0%, #0d0d0d 100%)',
-          border: '1px solid rgba(251,191,36,0.2)',
-          boxShadow: '0 0 40px rgba(251,191,36,0.08), 0 25px 50px rgba(0,0,0,0.6)',
-        }}
-      >
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-xl text-center text-white">Sign In</CardTitle>
-          <CardDescription className="text-center" style={{ color: 'rgba(251,191,36,0.6)' }}>
-            Enter your credentials to continue
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 text-sm text-red-400 bg-red-950/50 border border-red-800/50 rounded-md">
-                {error}
-              </div>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
+          <p className="text-sm text-muted-foreground">Enter your credentials to sign in</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@church.org"
+              autoComplete="email"
+              className="h-10"
+              {...register('email')}
+            />
+            {errors.email && (
+              <p className="text-xs text-destructive">{errors.email.message}</p>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                className="bg-black/40 border-white/10 text-white placeholder:text-gray-600 focus:border-amber-400/50 focus:ring-amber-400/20"
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-400">{errors.email.message}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                className="bg-black/40 border-white/10 text-white placeholder:text-gray-600 focus:border-amber-400/50 focus:ring-amber-400/20"
-                {...register('password')}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-400">{errors.password.message}</p>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              type="submit"
-              className="w-full font-semibold tracking-wide transition-all duration-200"
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                color: '#000',
-                border: 'none',
-                boxShadow: loginMutation.isPending ? 'none' : '0 4px 20px rgba(245,158,11,0.3)',
-              }}
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </CardFooter>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              className="h-10"
+              {...register('password')}
+            />
+            {errors.password && (
+              <p className="text-xs text-destructive">{errors.password.message}</p>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full h-10" disabled={loginMutation.isPending}>
+            {loginMutation.isPending ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Signing in...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </span>
+            )}
+          </Button>
         </form>
-      </Card>
+      </div>
     </AuthLayout>
   );
 }
