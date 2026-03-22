@@ -6,7 +6,7 @@ import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, AssignAss
 import { TokenPayload } from '../../utils/jwt';
 
 export class DepartmentsService {
-  private async ensureUserIsMember(
+  async ensureUserIsMember(
     userId: string,
     departmentId: string,
     createdById: string
