@@ -60,6 +60,18 @@ class DepartmentsController {
             next(error);
         }
     }
+    async assignAssistantHOD(req, res, next) {
+        try {
+            const department = await departments_service_1.departmentsService.assignAssistantHOD(req.params.id, req.body, req.user);
+            res.json({
+                success: true,
+                data: department,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
     async deactivate(req, res, next) {
         try {
             await departments_service_1.departmentsService.deactivateDepartment(req.params.id, req.user);

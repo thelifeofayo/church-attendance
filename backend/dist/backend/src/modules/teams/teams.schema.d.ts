@@ -14,12 +14,12 @@ export declare const updateTeamSchema: z.ZodObject<{
     teamHeadId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     isActive: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    isActive?: boolean | undefined;
     name?: string | undefined;
+    isActive?: boolean | undefined;
     teamHeadId?: string | null | undefined;
 }, {
-    isActive?: boolean | undefined;
     name?: string | undefined;
+    isActive?: boolean | undefined;
     teamHeadId?: string | null | undefined;
 }>;
 export declare const listTeamsQuerySchema: z.ZodObject<{

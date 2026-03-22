@@ -16,5 +16,6 @@ router.post('/logout', auth_1.authenticate, auth_controller_1.authController.log
 router.post('/logout-all', auth_1.authenticate, auth_controller_1.authController.logoutAll);
 router.post('/change-password', auth_1.authenticate, (0, validate_1.validate)({ body: auth_schema_1.changePasswordSchema }), auth_controller_1.authController.changePassword);
 router.get('/me', auth_1.authenticate, auth_controller_1.authController.me);
+router.get('/password-change-status', auth_1.authenticate, auth_controller_1.authController.passwordChangeStatus);
 exports.default = router;
 //# sourceMappingURL=auth.routes.js.map

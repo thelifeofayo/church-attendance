@@ -9,7 +9,9 @@ var Role;
 (function (Role) {
     Role["ADMIN"] = "ADMIN";
     Role["TEAM_HEAD"] = "TEAM_HEAD";
+    Role["SUB_TEAM_HEAD"] = "SUB_TEAM_HEAD";
     Role["HOD"] = "HOD";
+    Role["ASSISTANT_HOD"] = "ASSISTANT_HOD";
 })(Role || (exports.Role = Role = {}));
 var ServiceType;
 (function (ServiceType) {

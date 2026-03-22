@@ -34,6 +34,9 @@ export declare const config: {
         readonly pass: string;
         readonly from: string;
     };
+    readonly passwordReset: {
+        readonly delivery: "email" | "token";
+    };
     readonly cloudinary: {
         readonly cloudName: string;
         readonly apiKey: string;

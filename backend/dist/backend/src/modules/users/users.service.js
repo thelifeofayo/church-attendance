@@ -6,6 +6,7 @@ const password_1 = require("../../utils/password");
 const auditLog_1 = require("../../utils/auditLog");
 const errors_1 = require("../../utils/errors");
 const shared_1 = require("shared");
+const uuid_1 = require("uuid");
 class UsersService {
     async listUsers(query, currentUser) {
         const { page, limit, role, teamId, search, includeInactive } = query;
@@ -129,6 +130,7 @@ class UsersService {
         };
     }
     async createUser(input, currentUser) {
+        const DEFAULT_PASSWORD = 'Password123';
         const { email, firstName, lastName, role, teamId, departmentId, birthMonth, birthDay, phoneNumber } = input;
         // Permission checks
         if (currentUser.role === shared_1.Role.TEAM_HEAD) {
@@ -148,8 +150,13 @@ class UsersService {
         if (existingUser) {
             throw new errors_1.ConflictError('A user with this email already exists');
         }
-        // Generate temporary password
-        const tempPassword = (0, password_1.generateTemporaryPassword)();
+        // Always set the default onboarding password.
+        // We also set resetToken/resetTokenExpiry to force the user to change it on first login.
+        const tempPassword = DEFAULT_PASSWORD;
+        // Tag the onboarding default-password requirement so forgot-password flows
+        // don't accidentally force users to change on login.
+        const resetToken = `DEFAULT_${(0, uuid_1.v4)()}`;
+        const resetTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
         const passwordHash = await (0, password_1.hashPassword)(tempPassword);
         const user = await prisma_1.prisma.user.create({
             data: {
@@ -158,6 +165,8 @@ class UsersService {
                 lastName,
                 role,
                 passwordHash,
+                resetToken,
+                resetTokenExpiry,
                 ...(birthMonth !== undefined && { birthMonth }),
                 ...(birthDay !== undefined && { birthDay }),
                 ...(phoneNumber !== undefined && { phoneNumber }),
@@ -209,8 +218,6 @@ class UsersService {
             entityId: user.id,
             diff: { email, firstName, lastName, role },
         });
-        // TODO: Send welcome email with temporary password
-        console.log(`Welcome email for ${email}: temp password = ${tempPassword}`);
         return {
             id: user.id,
             email: user.email,

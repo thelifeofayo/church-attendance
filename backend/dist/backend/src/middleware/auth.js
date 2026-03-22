@@ -25,10 +25,18 @@ async function authenticate(req, _res, next) {
                 email: true,
                 role: true,
                 isActive: true,
+                resetToken: true,
+                resetTokenExpiry: true,
                 teamAsHead: {
                     select: { id: true },
                 },
+                teamAsSubHead: {
+                    select: { id: true },
+                },
                 departmentAsHOD: {
+                    select: { id: true, teamId: true },
+                },
+                departmentAsAssistantHOD: {
                     select: { id: true, teamId: true },
                 },
             },
@@ -36,15 +44,35 @@ async function authenticate(req, _res, next) {
         if (!user || !user.isActive) {
             throw new errors_1.UnauthorizedError('User not found or inactive');
         }
+        const requiresPasswordChange = !!user.resetToken &&
+            user.resetToken.startsWith('DEFAULT_') &&
+            !!user.resetTokenExpiry &&
+            user.resetTokenExpiry > new Date();
+        // If user is using the onboarding/default password, block access to the system
+        // until they change it.
+        if (requiresPasswordChange) {
+            const isAuthBase = req.baseUrl === '/api/auth';
+            const allowedPaths = new Set(['/change-password', '/me', '/logout', '/password-change-status']);
+            if (!(isAuthBase && allowedPaths.has(req.path))) {
+                throw new errors_1.UnauthorizedError('Password change required');
+            }
+        }
         // Add team and department IDs based on role
         let teamId = null;
         let departmentId = null;
         if (user.role === shared_1.Role.TEAM_HEAD && user.teamAsHead) {
             teamId = user.teamAsHead.id;
         }
+        else if (user.role === shared_1.Role.SUB_TEAM_HEAD && user.teamAsSubHead) {
+            teamId = user.teamAsSubHead.id;
+        }
         else if (user.role === shared_1.Role.HOD && user.departmentAsHOD) {
             departmentId = user.departmentAsHOD.id;
             teamId = user.departmentAsHOD.teamId;
+        }
+        else if (user.role === shared_1.Role.ASSISTANT_HOD && user.departmentAsAssistantHOD) {
+            departmentId = user.departmentAsAssistantHOD.id;
+            teamId = user.departmentAsAssistantHOD.teamId;
         }
         req.user = {
             userId: decoded.userId,

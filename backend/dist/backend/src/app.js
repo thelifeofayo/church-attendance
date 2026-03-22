@@ -25,11 +25,30 @@ const broadcasts_routes_1 = __importDefault(require("./modules/broadcasts/broadc
 const uploads_routes_1 = __importDefault(require("./modules/uploads/uploads.routes"));
 function createApp() {
     const app = (0, express_1.default)();
+    const allowedOrigins = new Set(['http://localhost:5173', config_1.config.frontendUrl]);
+    try {
+        const frontendUrl = new URL(config_1.config.frontendUrl);
+        if (frontendUrl.hostname.startsWith('www.')) {
+            allowedOrigins.add(`${frontendUrl.protocol}//${frontendUrl.hostname.replace('www.', '')}`);
+        }
+        else {
+            allowedOrigins.add(`${frontendUrl.protocol}//www.${frontendUrl.hostname}`);
+        }
+    }
+    catch {
+        // Ignore invalid FRONTEND_URL values and rely on defaults.
+    }
     // Security middleware
     app.use((0, helmet_1.default)());
     // CORS
     app.use((0, cors_1.default)({
-        origin: config_1.config.frontendUrl,
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.has(origin)) {
+                callback(null, true);
+                return;
+            }
+            callback(new Error(`CORS blocked for origin: ${origin}`));
+        },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
@@ -76,4 +95,6 @@ function createApp() {
     app.use(errorHandler_1.errorHandler);
     return app;
 }
+const app = createApp();
+exports.default = app;
 //# sourceMappingURL=app.js.map

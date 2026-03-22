@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, Department, DepartmentWithRelations, PaginatedResponse } from 'shared';
-import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, ListDepartmentsQuery } from './departments.schema';
+import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, AssignAssistantHODInput, ListDepartmentsQuery } from './departments.schema';
 export declare class DepartmentsController {
     list(req: Request<unknown, unknown, unknown, ListDepartmentsQuery>, res: Response<PaginatedResponse<DepartmentWithRelations>>, next: NextFunction): Promise<void>;
     getById(req: Request<{
@@ -13,6 +13,9 @@ export declare class DepartmentsController {
     assignHOD(req: Request<{
         id: string;
     }, unknown, AssignHODInput>, res: Response<ApiResponse<Department>>, next: NextFunction): Promise<void>;
+    assignAssistantHOD(req: Request<{
+        id: string;
+    }, unknown, AssignAssistantHODInput>, res: Response<ApiResponse<Department>>, next: NextFunction): Promise<void>;
     deactivate(req: Request<{
         id: string;
     }>, res: Response<ApiResponse<void>>, next: NextFunction): Promise<void>;

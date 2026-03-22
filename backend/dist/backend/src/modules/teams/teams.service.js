@@ -28,8 +28,8 @@ class TeamsService {
         if (search) {
             where.name = { contains: search, mode: 'insensitive' };
         }
-        // Team Heads can only see their own team
-        if (currentUser.role === shared_1.Role.TEAM_HEAD) {
+        // Team Heads and Sub-Team Heads can only see their own team
+        if (currentUser.role === shared_1.Role.TEAM_HEAD || currentUser.role === shared_1.Role.SUB_TEAM_HEAD) {
             where.id = currentUser.teamId;
         }
         const [teams, total] = await Promise.all([
@@ -85,8 +85,8 @@ class TeamsService {
         };
     }
     async getTeamById(id, currentUser) {
-        // Team Heads can only view their own team
-        if (currentUser.role === shared_1.Role.TEAM_HEAD && currentUser.teamId !== id) {
+        // Team Heads and Sub-Team Heads can only view their own team
+        if ((currentUser.role === shared_1.Role.TEAM_HEAD || currentUser.role === shared_1.Role.SUB_TEAM_HEAD) && currentUser.teamId !== id) {
             throw new errors_1.ForbiddenError('Access denied to this team');
         }
         const team = await prisma_1.prisma.team.findUnique({

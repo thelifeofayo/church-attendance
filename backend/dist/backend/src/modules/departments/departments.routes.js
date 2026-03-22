@@ -16,6 +16,7 @@ router.get('/:id', (0, rbac_1.requireAuthenticated)(), (0, validate_1.validate)(
 router.post('/', (0, rbac_1.requireAdminOrTeamHead)(), (0, validate_1.validate)({ body: departments_schema_1.createDepartmentSchema }), departments_controller_1.departmentsController.create);
 router.patch('/:id', (0, rbac_1.requireAdminOrTeamHead)(), (0, validate_1.validate)({ params: departments_schema_1.departmentIdParamSchema, body: departments_schema_1.updateDepartmentSchema }), departments_controller_1.departmentsController.update);
 router.patch('/:id/assign-hod', (0, rbac_1.requireAdminOrTeamHead)(), (0, validate_1.validate)({ params: departments_schema_1.departmentIdParamSchema, body: departments_schema_1.assignHODSchema }), departments_controller_1.departmentsController.assignHOD);
+router.patch('/:id/assign-assistant-hod', (0, rbac_1.requireAdminOrTeamHead)(), (0, validate_1.validate)({ params: departments_schema_1.departmentIdParamSchema, body: departments_schema_1.assignAssistantHODSchema }), departments_controller_1.departmentsController.assignAssistantHOD);
 router.delete('/:id', (0, rbac_1.requireAdminOrTeamHead)(), (0, validate_1.validate)({ params: departments_schema_1.departmentIdParamSchema }), departments_controller_1.departmentsController.deactivate);
 exports.default = router;
 //# sourceMappingURL=departments.routes.js.map

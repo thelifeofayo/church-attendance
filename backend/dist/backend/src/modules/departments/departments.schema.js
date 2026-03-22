@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.departmentIdParamSchema = exports.listDepartmentsQuerySchema = exports.assignHODSchema = exports.updateDepartmentSchema = exports.createDepartmentSchema = void 0;
+exports.departmentIdParamSchema = exports.listDepartmentsQuerySchema = exports.assignAssistantHODSchema = exports.assignHODSchema = exports.updateDepartmentSchema = exports.createDepartmentSchema = void 0;
 const zod_1 = require("zod");
 exports.createDepartmentSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Department name is required').max(200),
@@ -9,9 +9,13 @@ exports.createDepartmentSchema = zod_1.z.object({
 exports.updateDepartmentSchema = zod_1.z.object({
     name: zod_1.z.string().min(1).max(200).optional(),
     isActive: zod_1.z.boolean().optional(),
+    teamId: zod_1.z.string().uuid().optional(),
 });
 exports.assignHODSchema = zod_1.z.object({
     hodId: zod_1.z.string().uuid('Invalid HOD ID').nullable(),
+});
+exports.assignAssistantHODSchema = zod_1.z.object({
+    assistantHodId: zod_1.z.string().uuid('Invalid Assistant HOD ID').nullable(),
 });
 exports.listDepartmentsQuerySchema = zod_1.z.object({
     page: zod_1.z.string().transform(Number).default('1'),

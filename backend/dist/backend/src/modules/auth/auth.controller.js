@@ -54,9 +54,10 @@ class AuthController {
     }
     async forgotPassword(req, res, next) {
         try {
-            await auth_service_1.authService.forgotPassword(req.body);
+            const result = await auth_service_1.authService.forgotPassword(req.body);
             res.json({
                 success: true,
+                data: result,
             });
         }
         catch (error) {
@@ -91,6 +92,18 @@ class AuthController {
             res.json({
                 success: true,
                 data: user,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async passwordChangeStatus(req, res, next) {
+        try {
+            const result = await auth_service_1.authService.getPasswordChangeStatus(req.user.userId);
+            res.json({
+                success: true,
+                data: result,
             });
         }
         catch (error) {

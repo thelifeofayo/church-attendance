@@ -17,12 +17,12 @@ export declare const updateEmailTemplateSchema: z.ZodObject<{
     body: z.ZodOptional<z.ZodString>;
     isActive: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    isActive?: boolean | undefined;
     subject?: string | undefined;
+    isActive?: boolean | undefined;
     body?: string | undefined;
 }, {
-    isActive?: boolean | undefined;
     subject?: string | undefined;
+    isActive?: boolean | undefined;
     body?: string | undefined;
 }>;
 export declare const listEmailTemplatesQuerySchema: z.ZodObject<{

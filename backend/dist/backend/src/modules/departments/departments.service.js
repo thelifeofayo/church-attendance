@@ -6,6 +6,47 @@ const auditLog_1 = require("../../utils/auditLog");
 const errors_1 = require("../../utils/errors");
 const shared_1 = require("shared");
 class DepartmentsService {
+    async ensureUserIsMember(userId, departmentId, createdById) {
+        // Get user details first
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                firstName: true,
+                lastName: true,
+                birthMonth: true,
+                birthDay: true,
+                phoneNumber: true,
+                email: true,
+            },
+        });
+        if (!user)
+            return;
+        // Check if user is already a member of this department
+        // We'll check by matching name and email (if available)
+        const existingMember = await prisma_1.prisma.member.findFirst({
+            where: {
+                departmentId,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email || null,
+            },
+        });
+        if (!existingMember) {
+            // Create member record
+            await prisma_1.prisma.member.create({
+                data: {
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    departmentId,
+                    createdById,
+                    birthMonth: user.birthMonth,
+                    birthDay: user.birthDay,
+                    phoneNumber: user.phoneNumber,
+                    email: user.email,
+                },
+            });
+        }
+    }
     async listDepartments(query, currentUser) {
         const { page, limit, teamId, search, includeInactive } = query;
         const skip = (page - 1) * limit;
@@ -17,10 +58,10 @@ class DepartmentsService {
             where.name = { contains: search, mode: 'insensitive' };
         }
         // Role-based filtering
-        if (currentUser.role === shared_1.Role.TEAM_HEAD) {
+        if (currentUser.role === shared_1.Role.TEAM_HEAD || currentUser.role === shared_1.Role.SUB_TEAM_HEAD) {
             where.teamId = currentUser.teamId;
         }
-        else if (currentUser.role === shared_1.Role.HOD) {
+        else if (currentUser.role === shared_1.Role.HOD || currentUser.role === shared_1.Role.ASSISTANT_HOD) {
             where.id = currentUser.departmentId;
         }
         else if (teamId) {
@@ -35,6 +76,14 @@ class DepartmentsService {
                 include: {
                     team: { select: { id: true, name: true } },
                     hod: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                        },
+                    },
+                    assistantHod: {
                         select: {
                             id: true,
                             firstName: true,
@@ -70,6 +119,16 @@ class DepartmentsService {
                     createdAt: '',
                     updatedAt: '',
                 } : null,
+                assistantHod: d.assistantHod ? {
+                    id: d.assistantHod.id,
+                    email: d.assistantHod.email,
+                    firstName: d.assistantHod.firstName,
+                    lastName: d.assistantHod.lastName,
+                    role: shared_1.Role.ASSISTANT_HOD,
+                    isActive: true,
+                    createdAt: '',
+                    updatedAt: '',
+                } : null,
                 _count: d._count,
             })),
             meta: {
@@ -86,6 +145,14 @@ class DepartmentsService {
             include: {
                 team: { select: { id: true, name: true } },
                 hod: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    },
+                },
+                assistantHod: {
                     select: {
                         id: true,
                         firstName: true,
@@ -113,10 +180,10 @@ class DepartmentsService {
             throw new errors_1.NotFoundError('Department');
         }
         // Permission checks
-        if (currentUser.role === shared_1.Role.TEAM_HEAD && department.teamId !== currentUser.teamId) {
+        if ((currentUser.role === shared_1.Role.TEAM_HEAD || currentUser.role === shared_1.Role.SUB_TEAM_HEAD) && department.teamId !== currentUser.teamId) {
             throw new errors_1.ForbiddenError('Access denied to this department');
         }
-        if (currentUser.role === shared_1.Role.HOD && department.id !== currentUser.departmentId) {
+        if ((currentUser.role === shared_1.Role.HOD || currentUser.role === shared_1.Role.ASSISTANT_HOD) && department.id !== currentUser.departmentId) {
             throw new errors_1.ForbiddenError('Access denied to this department');
         }
         return {
@@ -134,6 +201,16 @@ class DepartmentsService {
                 firstName: department.hod.firstName,
                 lastName: department.hod.lastName,
                 role: shared_1.Role.HOD,
+                isActive: true,
+                createdAt: '',
+                updatedAt: '',
+            } : null,
+            assistantHod: department.assistantHod ? {
+                id: department.assistantHod.id,
+                email: department.assistantHod.email,
+                firstName: department.assistantHod.firstName,
+                lastName: department.assistantHod.lastName,
+                role: shared_1.Role.ASSISTANT_HOD,
                 isActive: true,
                 createdAt: '',
                 updatedAt: '',
@@ -220,6 +297,8 @@ class DepartmentsService {
         if (!existingDept) {
             throw new errors_1.NotFoundError('Department');
         }
+        const requestedTeamId = input.teamId;
+        const targetTeamId = requestedTeamId ?? existingDept.teamId;
         // Permission checks
         if (currentUser.role === shared_1.Role.TEAM_HEAD && existingDept.teamId !== currentUser.teamId) {
             throw new errors_1.ForbiddenError('Access denied to this department');
@@ -227,12 +306,23 @@ class DepartmentsService {
         if (currentUser.role !== shared_1.Role.ADMIN && currentUser.role !== shared_1.Role.TEAM_HEAD) {
             throw new errors_1.ForbiddenError('Only Admins and Team Heads can update departments');
         }
+        // Team Heads can only move departments within their own team
+        if (currentUser.role === shared_1.Role.TEAM_HEAD && requestedTeamId && requestedTeamId !== currentUser.teamId) {
+            throw new errors_1.ForbiddenError('Access denied to change department team');
+        }
+        // If team is changing, verify the team exists
+        if (requestedTeamId && requestedTeamId !== existingDept.teamId) {
+            const team = await prisma_1.prisma.team.findUnique({ where: { id: requestedTeamId } });
+            if (!team) {
+                throw new errors_1.NotFoundError('Team');
+            }
+        }
         // Check for duplicate name
         if (input.name) {
             const duplicateName = await prisma_1.prisma.department.findFirst({
                 where: {
                     name: { equals: input.name, mode: 'insensitive' },
-                    teamId: existingDept.teamId,
+                    teamId: targetTeamId,
                     id: { not: id },
                 },
             });
@@ -245,15 +335,18 @@ class DepartmentsService {
             data: {
                 ...(input.name && { name: input.name }),
                 ...(input.isActive !== undefined && { isActive: input.isActive }),
+                ...(requestedTeamId && { teamId: requestedTeamId }),
             },
         });
         // Create audit log
         const diff = (0, auditLog_1.generateDiff)({
             name: existingDept.name,
             isActive: existingDept.isActive,
+            teamId: existingDept.teamId,
         }, {
             name: department.name,
             isActive: department.isActive,
+            teamId: department.teamId,
         });
         if (Object.keys(diff).length > 0) {
             await (0, auditLog_1.createAuditLog)({
@@ -310,6 +403,10 @@ class DepartmentsService {
             where: { id },
             data: { hodId },
         });
+        // If an HOD was assigned, ensure they are also a member of the department
+        if (hodId) {
+            await this.ensureUserIsMember(hodId, id, currentUser.userId);
+        }
         // Create audit log
         await (0, auditLog_1.createAuditLog)({
             userId: currentUser.userId,
@@ -318,6 +415,64 @@ class DepartmentsService {
             entityType: 'Department',
             entityId: department.id,
             diff: { hodId: { old: existingDept.hodId, new: hodId } },
+        });
+        return {
+            id: department.id,
+            name: department.name,
+            teamId: department.teamId,
+            hodId: department.hodId,
+            isActive: department.isActive,
+            createdAt: department.createdAt.toISOString(),
+            updatedAt: department.updatedAt.toISOString(),
+        };
+    }
+    async assignAssistantHOD(id, input, currentUser) {
+        const { assistantHodId } = input;
+        const existingDept = await prisma_1.prisma.department.findUnique({
+            where: { id },
+        });
+        if (!existingDept) {
+            throw new errors_1.NotFoundError('Department');
+        }
+        // Permission checks
+        if ((currentUser.role === shared_1.Role.TEAM_HEAD || currentUser.role === shared_1.Role.SUB_TEAM_HEAD) && existingDept.teamId !== currentUser.teamId) {
+            throw new errors_1.ForbiddenError('Access denied to this department');
+        }
+        if (currentUser.role !== shared_1.Role.ADMIN && currentUser.role !== shared_1.Role.TEAM_HEAD && currentUser.role !== shared_1.Role.SUB_TEAM_HEAD) {
+            throw new errors_1.ForbiddenError('Only Admins and Team Heads can assign Assistant HODs');
+        }
+        // If assigning a new Assistant HOD
+        if (assistantHodId) {
+            const user = await prisma_1.prisma.user.findUnique({
+                where: { id: assistantHodId },
+                include: { departmentAsAssistantHOD: true },
+            });
+            if (!user) {
+                throw new errors_1.NotFoundError('User');
+            }
+            if (user.role !== shared_1.Role.ASSISTANT_HOD) {
+                throw new errors_1.ConflictError('User must have ASSISTANT_HOD role');
+            }
+            if (user.departmentAsAssistantHOD && user.departmentAsAssistantHOD.id !== id) {
+                throw new errors_1.ConflictError('User is already assigned as Assistant HOD of another department');
+            }
+        }
+        const department = await prisma_1.prisma.department.update({
+            where: { id },
+            data: { assistantHodId },
+        });
+        // If an Assistant HOD was assigned, ensure they are also a member of the department
+        if (assistantHodId) {
+            await this.ensureUserIsMember(assistantHodId, id, currentUser.userId);
+        }
+        // Create audit log
+        await (0, auditLog_1.createAuditLog)({
+            userId: currentUser.userId,
+            userRole: currentUser.role,
+            action: 'UPDATE',
+            entityType: 'Department',
+            entityId: department.id,
+            diff: { assistantHodId: { old: existingDept.assistantHodId, new: assistantHodId } },
         });
         return {
             id: department.id,

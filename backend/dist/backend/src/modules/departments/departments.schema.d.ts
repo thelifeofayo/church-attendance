@@ -12,12 +12,15 @@ export declare const createDepartmentSchema: z.ZodObject<{
 export declare const updateDepartmentSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     isActive: z.ZodOptional<z.ZodBoolean>;
+    teamId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    isActive?: boolean | undefined;
     name?: string | undefined;
+    isActive?: boolean | undefined;
+    teamId?: string | undefined;
 }, {
-    isActive?: boolean | undefined;
     name?: string | undefined;
+    isActive?: boolean | undefined;
+    teamId?: string | undefined;
 }>;
 export declare const assignHODSchema: z.ZodObject<{
     hodId: z.ZodNullable<z.ZodString>;
@@ -25,6 +28,13 @@ export declare const assignHODSchema: z.ZodObject<{
     hodId: string | null;
 }, {
     hodId: string | null;
+}>;
+export declare const assignAssistantHODSchema: z.ZodObject<{
+    assistantHodId: z.ZodNullable<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    assistantHodId: string | null;
+}, {
+    assistantHodId: string | null;
 }>;
 export declare const listDepartmentsQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodEffects<z.ZodString, number, string>>;
@@ -55,5 +65,6 @@ export declare const departmentIdParamSchema: z.ZodObject<{
 export type CreateDepartmentInput = z.infer<typeof createDepartmentSchema>;
 export type UpdateDepartmentInput = z.infer<typeof updateDepartmentSchema>;
 export type AssignHODInput = z.infer<typeof assignHODSchema>;
+export type AssignAssistantHODInput = z.infer<typeof assignAssistantHODSchema>;
 export type ListDepartmentsQuery = z.infer<typeof listDepartmentsQuerySchema>;
 //# sourceMappingURL=departments.schema.d.ts.map
