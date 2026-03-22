@@ -42,6 +42,7 @@ export interface Department extends BaseEntity {
     name: string;
     teamId: string;
     hodId: string | null;
+    assistantHodId: string | null;
     isActive: boolean;
 }
 export interface DepartmentWithRelations extends Department {

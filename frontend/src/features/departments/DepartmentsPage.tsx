@@ -24,6 +24,7 @@ const NO_SELECTION = '__none__';
 
 interface DepartmentWithDetails extends Department {
   hod?: User | null;
+  assistantHod?: User | null;
   team?: Team | null;
   _count?: { members: number };
 }
@@ -41,6 +42,7 @@ export function DepartmentsPage() {
   const [departmentTeamFilterId, setDepartmentTeamFilterId] = React.useState(NO_SELECTION);
   const [teamSearch, setTeamSearch] = React.useState('');
   const [editHodId, setEditHodId] = React.useState(NO_SELECTION);
+  const [editAssistantHodId, setEditAssistantHodId] = React.useState(NO_SELECTION);
   const [search, setSearch] = React.useState('');
 
   const { data: departments, isLoading } = useQuery({
@@ -89,6 +91,14 @@ export function DepartmentsPage() {
     },
   });
 
+  const { data: availableAssistantHODs } = useQuery({
+    queryKey: ['users', 'assistant-hods'],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: User[] }>('/users?role=ASSISTANT_HOD');
+      return res.data.data;
+    },
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['departments'] });
     queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
@@ -120,6 +130,12 @@ export function DepartmentsPage() {
       if (currentHodId !== newHodId) {
         await api.patch(`/departments/${editing.id}/assign-hod`, { hodId: newHodId });
       }
+
+      const currentAssistantHodId = editing.assistantHodId ?? null;
+      const newAssistantHodId = editAssistantHodId === NO_SELECTION ? null : editAssistantHodId;
+      if (currentAssistantHodId !== newAssistantHodId) {
+        await api.patch(`/departments/${editing.id}/assign-assistant-hod`, { assistantHodId: newAssistantHodId });
+      }
     },
     onSuccess: () => { invalidate(); setEditOpen(false); toast.success('Department updated'); },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -133,12 +149,21 @@ export function DepartmentsPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const assignAssistantHODMutation = useMutation({
+    mutationFn: async ({ id, assistantHodId }: { id: string; assistantHodId: string | null }) => {
+      await api.patch(`/departments/${id}/assign-assistant-hod`, { assistantHodId });
+    },
+    onSuccess: () => { invalidate(); toast.success('Assistant HOD assignment updated'); },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
   function openAdd() { setName(''); setTeamId(NO_SELECTION); setAddOpen(true); }
   function openEdit(d: DepartmentWithDetails) {
     setEditing(d);
     setName(d.name);
     setTeamId(d.teamId || NO_SELECTION);
     setEditHodId(d.hodId || NO_SELECTION);
+    setEditAssistantHodId(d.assistantHodId || NO_SELECTION);
     setEditOpen(true);
   }
 
@@ -228,6 +253,7 @@ export function DepartmentsPage() {
                     <TableHead>Department</TableHead>
                     {isAdmin && <TableHead>Team</TableHead>}
                     <TableHead>HOD</TableHead>
+                    <TableHead>Assistant HOD</TableHead>
                     <TableHead className="text-center">Members</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -243,13 +269,29 @@ export function DepartmentsPage() {
                           value={dept.hodId || NO_SELECTION}
                           onValueChange={(v) => assignHODMutation.mutate({ id: dept.id, hodId: v === NO_SELECTION ? null : v })}
                         >
-                          <SelectTrigger className="w-[170px] h-8 text-xs">
+                          <SelectTrigger className="w-[160px] h-8 text-xs">
                             <SelectValue placeholder="Assign HOD" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value={NO_SELECTION}>No HOD</SelectItem>
                             {availableHODs?.map((hod) => (
                               <SelectItem key={hod.id} value={hod.id}>{hod.firstName} {hod.lastName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={dept.assistantHodId || NO_SELECTION}
+                          onValueChange={(v) => assignAssistantHODMutation.mutate({ id: dept.id, assistantHodId: v === NO_SELECTION ? null : v })}
+                        >
+                          <SelectTrigger className="w-[160px] h-8 text-xs">
+                            <SelectValue placeholder="Assign Asst. HOD" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NO_SELECTION}>No Assistant HOD</SelectItem>
+                            {availableAssistantHODs?.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -342,7 +384,7 @@ export function DepartmentsPage() {
             <div className="space-y-2">
               <Label>HOD</Label>
               <Select value={editHodId} onValueChange={setEditHodId}>
-                <SelectTrigger className="w-[170px] h-8 text-xs">
+                <SelectTrigger>
                   <SelectValue placeholder="Assign HOD" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,6 +392,22 @@ export function DepartmentsPage() {
                   {availableHODs?.map((hod) => (
                     <SelectItem key={hod.id} value={hod.id}>
                       {hod.firstName} {hod.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Assistant HOD</Label>
+              <Select value={editAssistantHodId} onValueChange={setEditAssistantHodId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Assign Assistant HOD" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SELECTION}>No Assistant HOD</SelectItem>
+                  {availableAssistantHODs?.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>

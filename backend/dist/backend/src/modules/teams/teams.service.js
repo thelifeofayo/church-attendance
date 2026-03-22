@@ -147,6 +147,7 @@ class TeamsService {
                 name: d.name,
                 teamId: d.teamId,
                 hodId: d.hodId,
+                assistantHodId: d.assistantHodId,
                 isActive: d.isActive,
                 createdAt: d.createdAt.toISOString(),
                 updatedAt: d.updatedAt.toISOString(),
