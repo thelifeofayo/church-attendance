@@ -21,6 +21,10 @@ import uploadsRoutes from './modules/uploads/uploads.routes';
 
 export function createApp(): Application {
   const app = express();
+
+  // Trust proxy headers from Vercel/load balancers (required for express-rate-limit)
+  app.set('trust proxy', 1);
+
   const allowedOrigins = new Set<string>(['http://localhost:5173', config.frontendUrl]);
 
   try {

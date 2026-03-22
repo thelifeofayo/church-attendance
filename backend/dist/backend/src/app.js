@@ -25,6 +25,8 @@ const broadcasts_routes_1 = __importDefault(require("./modules/broadcasts/broadc
 const uploads_routes_1 = __importDefault(require("./modules/uploads/uploads.routes"));
 function createApp() {
     const app = (0, express_1.default)();
+    // Trust proxy headers from Vercel/load balancers (required for express-rate-limit)
+    app.set('trust proxy', 1);
     const allowedOrigins = new Set(['http://localhost:5173', config_1.config.frontendUrl]);
     try {
         const frontendUrl = new URL(config_1.config.frontendUrl);
