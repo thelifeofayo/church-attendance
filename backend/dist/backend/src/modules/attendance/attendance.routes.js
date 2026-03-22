@@ -15,8 +15,8 @@ router.get('/', (0, rbac_1.requireAuthenticated)(), (0, validate_1.validate)({ q
 // Must be before /:id to avoid "trigger-creation" being matched as an ID
 router.post('/trigger-creation', (0, rbac_1.requireAdmin)(), (0, validate_1.validate)({ body: attendance_schema_1.triggerRecordCreationSchema }), attendance_controller_1.attendanceController.triggerRecordCreation);
 router.get('/:id', (0, rbac_1.requireAuthenticated)(), (0, validate_1.validate)({ params: attendance_schema_1.attendanceIdParamSchema }), attendance_controller_1.attendanceController.getById);
-// Submit - HOD only
-router.post('/:id/submit', (0, rbac_1.requireHOD)(), (0, validate_1.validate)({ params: attendance_schema_1.attendanceIdParamSchema, body: attendance_schema_1.submitAttendanceSchema }), attendance_controller_1.attendanceController.submit);
+// Submit - HOD or Assistant HOD
+router.post('/:id/submit', (0, rbac_1.requireHODOrAssistant)(), (0, validate_1.validate)({ params: attendance_schema_1.attendanceIdParamSchema, body: attendance_schema_1.submitAttendanceSchema }), attendance_controller_1.attendanceController.submit);
 // Update - HOD (within window) or Admin (override)
 router.patch('/:id', (0, rbac_1.requireAuthenticated)(), (0, validate_1.validate)({ params: attendance_schema_1.attendanceIdParamSchema, body: attendance_schema_1.updateAttendanceSchema }), attendance_controller_1.attendanceController.update);
 // Send reminder - Admin or Team Head

@@ -17,7 +17,7 @@ export class AttendanceService {
     const where: Record<string, unknown> = {};
 
     // Role-based filtering
-    if (currentUser.role === Role.HOD) {
+    if (currentUser.role === Role.HOD || currentUser.role === Role.ASSISTANT_HOD) {
       where.departmentId = currentUser.departmentId;
     } else if (currentUser.role === Role.TEAM_HEAD) {
       where.department = { teamId: currentUser.teamId };
@@ -180,7 +180,10 @@ export class AttendanceService {
     }
 
     // Permission checks
-    if (currentUser.role === Role.HOD && record.departmentId !== currentUser.departmentId) {
+    if (
+      (currentUser.role === Role.HOD || currentUser.role === Role.ASSISTANT_HOD) &&
+      record.departmentId !== currentUser.departmentId
+    ) {
       throw new ForbiddenError('Access denied to this attendance record');
     }
 
@@ -242,11 +245,6 @@ export class AttendanceService {
     input: SubmitAttendanceInput,
     currentUser: TokenPayload
   ): Promise<AttendanceRecord> {
-    // Only HODs can submit attendance
-    if (currentUser.role !== Role.HOD) {
-      throw new ForbiddenError('Only HODs can submit attendance');
-    }
-
     const record = await prisma.attendanceRecord.findUnique({
       where: { id },
       include: {
@@ -258,7 +256,7 @@ export class AttendanceService {
       throw new NotFoundError('Attendance record');
     }
 
-    // Permission check
+    // Permission check — HOD and Assistant HOD can only submit for their own department
     if (record.departmentId !== currentUser.departmentId) {
       throw new ForbiddenError('Access denied to this attendance record');
     }
@@ -371,12 +369,12 @@ export class AttendanceService {
     }
 
     // Permission checks based on role
-    if (currentUser.role === Role.HOD) {
+    if (currentUser.role === Role.HOD || currentUser.role === Role.ASSISTANT_HOD) {
       if (record.departmentId !== currentUser.departmentId) {
         throw new ForbiddenError('Access denied to this attendance record');
       }
 
-      // Check edit window for HODs
+      // Check edit window
       if (record.submittedAt) {
         const editWindowMs = config.attendance.defaultEditWindowMinutes * 60 * 1000;
         const submittedTime = new Date(record.submittedAt).getTime();

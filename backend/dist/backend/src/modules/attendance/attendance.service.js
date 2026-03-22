@@ -12,7 +12,7 @@ class AttendanceService {
         const skip = (page - 1) * limit;
         const where = {};
         // Role-based filtering
-        if (currentUser.role === shared_1.Role.HOD) {
+        if (currentUser.role === shared_1.Role.HOD || currentUser.role === shared_1.Role.ASSISTANT_HOD) {
             where.departmentId = currentUser.departmentId;
         }
         else if (currentUser.role === shared_1.Role.TEAM_HEAD) {
@@ -164,7 +164,8 @@ class AttendanceService {
             throw new errors_1.NotFoundError('Attendance record');
         }
         // Permission checks
-        if (currentUser.role === shared_1.Role.HOD && record.departmentId !== currentUser.departmentId) {
+        if ((currentUser.role === shared_1.Role.HOD || currentUser.role === shared_1.Role.ASSISTANT_HOD) &&
+            record.departmentId !== currentUser.departmentId) {
             throw new errors_1.ForbiddenError('Access denied to this attendance record');
         }
         if (currentUser.role === shared_1.Role.TEAM_HEAD && record.department.teamId !== currentUser.teamId) {
@@ -219,10 +220,6 @@ class AttendanceService {
         };
     }
     async submitAttendance(id, input, currentUser) {
-        // Only HODs can submit attendance
-        if (currentUser.role !== shared_1.Role.HOD) {
-            throw new errors_1.ForbiddenError('Only HODs can submit attendance');
-        }
         const record = await prisma_1.prisma.attendanceRecord.findUnique({
             where: { id },
             include: {
@@ -232,7 +229,7 @@ class AttendanceService {
         if (!record) {
             throw new errors_1.NotFoundError('Attendance record');
         }
-        // Permission check
+        // Permission check — HOD and Assistant HOD can only submit for their own department
         if (record.departmentId !== currentUser.departmentId) {
             throw new errors_1.ForbiddenError('Access denied to this attendance record');
         }
@@ -326,11 +323,11 @@ class AttendanceService {
             throw new errors_1.BadRequestError('This attendance record is locked');
         }
         // Permission checks based on role
-        if (currentUser.role === shared_1.Role.HOD) {
+        if (currentUser.role === shared_1.Role.HOD || currentUser.role === shared_1.Role.ASSISTANT_HOD) {
             if (record.departmentId !== currentUser.departmentId) {
                 throw new errors_1.ForbiddenError('Access denied to this attendance record');
             }
-            // Check edit window for HODs
+            // Check edit window
             if (record.submittedAt) {
                 const editWindowMs = config_1.config.attendance.defaultEditWindowMinutes * 60 * 1000;
                 const submittedTime = new Date(record.submittedAt).getTime();

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { attendanceController } from './attendance.controller';
 import { authenticate } from '../../middleware/auth';
-import { requireAuthenticated, requireHOD, requireAdminOrTeamHead, requireAdmin } from '../../middleware/rbac';
+import { requireAuthenticated, requireHODOrAssistant, requireAdminOrTeamHead, requireAdmin } from '../../middleware/rbac';
 import { validate } from '../../middleware/validate';
 import {
   submitAttendanceSchema,
@@ -40,10 +40,10 @@ router.get(
   attendanceController.getById
 );
 
-// Submit - HOD only
+// Submit - HOD or Assistant HOD
 router.post(
   '/:id/submit',
-  requireHOD(),
+  requireHODOrAssistant(),
   validate({ params: attendanceIdParamSchema, body: submitAttendanceSchema }),
   attendanceController.submit
 );
