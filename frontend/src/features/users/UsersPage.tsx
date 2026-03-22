@@ -78,12 +78,14 @@ interface TeamOption {
   id: string;
   name: string;
   teamHeadId: string | null;
+  subTeamHeadId?: string | null;
 }
 
 interface DepartmentOption {
   id: string;
   name: string;
   hodId: string | null;
+  assistantHodId?: string | null;
   team?: { id: string; name: string } | null;
 }
 
@@ -179,10 +181,10 @@ export function UsersPage() {
         lastName: createForm.lastName,
         role: createForm.role,
       };
-      if (createForm.role === Role.TEAM_HEAD && createForm.teamId) {
+      if ((createForm.role === Role.TEAM_HEAD || createForm.role === Role.SUB_TEAM_HEAD) && createForm.teamId) {
         payload.teamId = createForm.teamId;
       }
-      if (createForm.role === Role.HOD && createForm.departmentId) {
+      if ((createForm.role === Role.HOD || createForm.role === Role.ASSISTANT_HOD) && createForm.departmentId) {
         payload.departmentId = createForm.departmentId;
       }
       if (createForm.birthMonth) payload.birthMonth = parseInt(createForm.birthMonth);
@@ -283,14 +285,16 @@ export function UsersPage() {
 
   // Available teams without a Team Head assigned
   const availableTeams = (teams || []).filter((t) => !t.teamHeadId);
+  const availableTeamsForSubHead = (teams || []).filter((t) => !t.subTeamHeadId);
 
   // Available departments without an HOD assigned
   const availableDepartments = (departments || []).filter((d) => !d.hodId);
+  const availableDepartmentsForAssistantHOD = (departments || []).filter((d) => !d.assistantHodId);
 
   // Allowed roles for the create form
   const allowedRoles: Role[] = isAdmin
-    ? [Role.ADMIN, Role.TEAM_HEAD, Role.HOD]
-    : [Role.HOD];
+    ? [Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD, Role.HOD, Role.ASSISTANT_HOD]
+    : [Role.HOD, Role.ASSISTANT_HOD];
 
   // Stats
   const adminCount = users.filter((u) => u.role === Role.ADMIN).length;
@@ -379,7 +383,9 @@ export function UsersPage() {
                   <SelectItem value={NO_SELECTION}>All Roles</SelectItem>
                   <SelectItem value={Role.ADMIN}>Admin</SelectItem>
                   <SelectItem value={Role.TEAM_HEAD}>Team Head</SelectItem>
+                  <SelectItem value={Role.SUB_TEAM_HEAD}>Sub-Team Head</SelectItem>
                   <SelectItem value={Role.HOD}>HOD</SelectItem>
+                  <SelectItem value={Role.ASSISTANT_HOD}>Assistant HOD</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -565,6 +571,32 @@ export function UsersPage() {
             )}
 
             {/* Team selection for Team Head */}
+            {createForm.role === Role.SUB_TEAM_HEAD && (
+              <div className="space-y-2">
+                <Label>Assign to Team</Label>
+                {availableTeamsForSubHead.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    All teams already have a Sub-Team Head assigned.
+                  </p>
+                ) : (
+                  <Select
+                    value={createForm.teamId || NO_SELECTION}
+                    onValueChange={(v) => setCreateForm((f) => ({ ...f, teamId: v === NO_SELECTION ? '' : v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_SELECTION} disabled>Select a team</SelectItem>
+                      {availableTeamsForSubHead.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             {createForm.role === Role.TEAM_HEAD && (
               <div className="space-y-2">
                 <Label>Assign to Team</Label>
@@ -584,6 +616,34 @@ export function UsersPage() {
                       <SelectItem value={NO_SELECTION} disabled>Select a team</SelectItem>
                       {availableTeams.map((t) => (
                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {/* Department selection for Assistant HOD */}
+            {createForm.role === Role.ASSISTANT_HOD && (
+              <div className="space-y-2">
+                <Label>Assign to Department</Label>
+                {availableDepartmentsForAssistantHOD.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    All departments already have an Assistant HOD assigned.
+                  </p>
+                ) : (
+                  <Select
+                    value={createForm.departmentId || NO_SELECTION}
+                    onValueChange={(v) => setCreateForm((f) => ({ ...f, departmentId: v === NO_SELECTION ? '' : v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDepartmentsForAssistantHOD.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}{d.team ? ` (${d.team.name})` : ''}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
