@@ -29,7 +29,9 @@ export class AuthService {
       where: { email: email.toLowerCase() },
       include: {
         teamAsHead: { select: { id: true } },
+        teamAsSubHead: { select: { id: true } },
         departmentAsHOD: { select: { id: true, teamId: true } },
+        departmentAsAssistantHOD: { select: { id: true, teamId: true } },
       },
     });
 
@@ -58,14 +60,14 @@ export class AuthService {
 
     if (user.role === Role.TEAM_HEAD && user.teamAsHead) {
       teamId = user.teamAsHead.id;
-    } else if (user.role === Role.SUB_TEAM_HEAD && user.teamAsHead) {
-      teamId = user.teamAsHead.id;
+    } else if (user.role === Role.SUB_TEAM_HEAD && user.teamAsSubHead) {
+      teamId = user.teamAsSubHead.id;
     } else if (user.role === Role.HOD && user.departmentAsHOD) {
       departmentId = user.departmentAsHOD.id;
       teamId = user.departmentAsHOD.teamId;
-    } else if (user.role === Role.ASSISTANT_HOD && user.departmentAsHOD) {
-      departmentId = user.departmentAsHOD.id;
-      teamId = user.departmentAsHOD.teamId;
+    } else if (user.role === Role.ASSISTANT_HOD && user.departmentAsAssistantHOD) {
+      departmentId = user.departmentAsAssistantHOD.id;
+      teamId = user.departmentAsAssistantHOD.teamId;
     }
 
     const tokenPayload: TokenPayload = {
@@ -145,7 +147,9 @@ export class AuthService {
         user: {
           include: {
             teamAsHead: { select: { id: true } },
+            teamAsSubHead: { select: { id: true } },
             departmentAsHOD: { select: { id: true, teamId: true } },
+            departmentAsAssistantHOD: { select: { id: true, teamId: true } },
           },
         },
       },
@@ -172,9 +176,14 @@ export class AuthService {
 
     if (user.role === Role.TEAM_HEAD && user.teamAsHead) {
       teamId = user.teamAsHead.id;
+    } else if (user.role === Role.SUB_TEAM_HEAD && user.teamAsSubHead) {
+      teamId = user.teamAsSubHead.id;
     } else if (user.role === Role.HOD && user.departmentAsHOD) {
       departmentId = user.departmentAsHOD.id;
       teamId = user.departmentAsHOD.teamId;
+    } else if (user.role === Role.ASSISTANT_HOD && user.departmentAsAssistantHOD) {
+      departmentId = user.departmentAsAssistantHOD.id;
+      teamId = user.departmentAsAssistantHOD.teamId;
     }
 
     const tokenPayload: TokenPayload = {
