@@ -21,7 +21,7 @@ export function AttendanceFormPage() {
   const queryClient = useQueryClient();
 
   const { user } = useAuthStore();
-  const isHOD = user?.role === Role.HOD;
+  const isHOD = user?.role === Role.HOD || user?.role === Role.ASSISTANT_HOD;
 
   const [attendance, setAttendance] = React.useState<Record<string, boolean>>({});
   const [absenceReasons, setAbsenceReasons] = React.useState<Record<string, string>>({});
@@ -165,7 +165,7 @@ export function AttendanceFormPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 pb-24 lg:pb-0">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
@@ -222,7 +222,7 @@ export function AttendanceFormPage() {
                   } ${!canEdit ? 'opacity-50' : ''}`}
                 >
                   <div
-                    className={`flex items-center justify-between p-3 ${
+                    className={`flex items-center justify-between p-4 ${
                       canEdit ? 'cursor-pointer hover:bg-accent/50' : 'cursor-not-allowed'
                     } rounded-lg transition-colors`}
                     onClick={() => toggleMember(member.id)}
@@ -309,8 +309,8 @@ export function AttendanceFormPage() {
             <p className="text-[11px] text-muted-foreground">{notes.length}/300 characters</p>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3">
+          {/* Actions — desktop only (mobile uses sticky footer below) */}
+          <div className="hidden lg:flex justify-end gap-3">
             <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Cancel</Button>
             <Button
               size="sm"
@@ -330,6 +330,22 @@ export function AttendanceFormPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Sticky submit bar — mobile only */}
+      {canEdit && (
+        <div className="fixed bottom-16 left-0 right-0 z-20 lg:hidden border-t border-border bg-background/95 backdrop-blur-sm px-4 py-3 flex gap-3">
+          <Button variant="outline" className="flex-1" onClick={() => navigate(-1)}>Cancel</Button>
+          <Button
+            className="flex-1"
+            onClick={handleSubmit}
+            disabled={!hasChanges || submitMutation.isPending || updateMutation.isPending}
+          >
+            {submitMutation.isPending || updateMutation.isPending
+              ? 'Saving...'
+              : isSubmitted ? 'Update' : 'Submit'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

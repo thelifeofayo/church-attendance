@@ -183,105 +183,150 @@ export function AttendanceListPage() {
         </CardContent>
       </Card>
 
-      {/* Records Table */}
+      {/* Records */}
       {records.length > 0 ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base">Attendance Records</CardTitle>
-                <CardDescription>{data?.meta?.total || 0} total records</CardDescription>
-              </div>
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="rounded-md border mx-6 mb-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-center">Attendance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.map((record) => {
-                    const presentCount = record.entries?.filter((e) => e.isPresent).length || 0;
-                    const totalCount = record.entries?.length || 0;
-                    const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
-                    const sc = statusConfig[record.status] || { label: record.status, variant: 'secondary' as const };
+        <>
+          {/* Mobile card list */}
+          <div className="space-y-3 lg:hidden">
+            {records.map((record) => {
+              const presentCount = record.entries?.filter((e) => e.isPresent).length || 0;
+              const totalCount = record.entries?.length || 0;
+              const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+              const sc = statusConfig[record.status] || { label: record.status, variant: 'secondary' as const };
 
-                    return (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{formatDate(record.serviceDate)}</TableCell>
-                        <TableCell>
-                          <Badge variant={record.serviceType === ServiceType.WEDNESDAY ? 'default' : 'secondary'}>
-                            {record.serviceType === ServiceType.WEDNESDAY ? 'Wednesday' : 'Sunday'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{record.department?.name || '—'}</TableCell>
-                        <TableCell className="text-center">
-                          {totalCount > 0 ? (
-                            <>
-                              <span className="font-medium">{presentCount}/{totalCount}</span>
-                              <span className="text-muted-foreground ml-1">({percentage}%)</span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
+              return (
+                <Link key={record.id} to={`/attendance/${record.id}`}>
+                  <Card className="active:scale-[0.99] transition-transform">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant={record.serviceType === ServiceType.WEDNESDAY ? 'default' : 'secondary'} className="text-[10px]">
+                              {record.serviceType === ServiceType.WEDNESDAY ? 'Wednesday' : 'Sunday'}
+                            </Badge>
+                            <Badge variant={sc.variant} className="text-[10px]">{sc.label}</Badge>
+                          </div>
+                          <p className="font-medium text-sm">{formatDate(record.serviceDate)}</p>
+                          {record.department?.name && (
+                            <p className="text-xs text-muted-foreground truncate">{record.department.name}</p>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={sc.variant}>{sc.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link to={`/attendance/${record.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Button>
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {totalCount > 0 && (
+                            <div className="text-right">
+                              <p className="text-sm font-semibold">{presentCount}/{totalCount}</p>
+                              <p className="text-[11px] text-muted-foreground">{percentage}%</p>
+                            </div>
+                          )}
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 pb-4">
-                <p className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+          {/* Desktop table */}
+          <Card className="hidden lg:block">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Attendance Records</CardTitle>
+                  <CardDescription>{data?.meta?.total || 0} total records</CardDescription>
                 </div>
+                <Calendar className="h-5 w-5 text-muted-foreground" />
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="rounded-md border mx-6 mb-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead className="text-center">Attendance</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {records.map((record) => {
+                      const presentCount = record.entries?.filter((e) => e.isPresent).length || 0;
+                      const totalCount = record.entries?.length || 0;
+                      const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+                      const sc = statusConfig[record.status] || { label: record.status, variant: 'secondary' as const };
+
+                      return (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-medium">{formatDate(record.serviceDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant={record.serviceType === ServiceType.WEDNESDAY ? 'default' : 'secondary'}>
+                              {record.serviceType === ServiceType.WEDNESDAY ? 'Wednesday' : 'Sunday'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{record.department?.name || '—'}</TableCell>
+                          <TableCell className="text-center">
+                            {totalCount > 0 ? (
+                              <>
+                                <span className="font-medium">{presentCount}/{totalCount}</span>
+                                <span className="text-muted-foreground ml-1">({percentage}%)</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={sc.variant}>{sc.label}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link to={`/attendance/${record.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState
           icon={ClipboardList}

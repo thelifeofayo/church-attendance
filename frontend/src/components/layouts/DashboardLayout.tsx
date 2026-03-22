@@ -26,6 +26,7 @@ import {
   Megaphone,
   ChevronLeft,
   Church,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,14 +39,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.HOD], group: 'main' },
-  { label: 'Attendance', href: '/attendance', icon: ClipboardList, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.HOD], group: 'main' },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD, Role.HOD, Role.ASSISTANT_HOD], group: 'main' },
+  { label: 'Attendance', href: '/attendance', icon: ClipboardList, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD, Role.HOD, Role.ASSISTANT_HOD], group: 'main' },
   { label: 'Teams', href: '/teams', icon: Building2, roles: [Role.ADMIN], group: 'manage' },
-  { label: 'Departments', href: '/departments', icon: Users, roles: [Role.ADMIN, Role.TEAM_HEAD], group: 'manage' },
-  { label: 'Users', href: '/users', icon: UserPlus, roles: [Role.ADMIN, Role.TEAM_HEAD], group: 'manage' },
-  { label: 'Members', href: '/members', icon: UserCog, roles: [Role.HOD], group: 'manage' },
+  { label: 'Departments', href: '/departments', icon: Users, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD], group: 'manage' },
+  { label: 'Users', href: '/users', icon: UserPlus, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD], group: 'manage' },
+  { label: 'Members', href: '/members', icon: UserCog, roles: [Role.HOD, Role.ASSISTANT_HOD], group: 'manage' },
   { label: 'Reports', href: '/reports', icon: FileBarChart, roles: [Role.ADMIN], group: 'admin' },
-  { label: 'Broadcasts', href: '/broadcasts', icon: Megaphone, roles: [Role.ADMIN, Role.TEAM_HEAD], group: 'admin' },
+  { label: 'Broadcasts', href: '/broadcasts', icon: Megaphone, roles: [Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD], group: 'admin' },
   { label: 'Email Settings', href: '/email-settings', icon: Mail, roles: [Role.ADMIN], group: 'admin' },
 ];
 
@@ -73,6 +74,10 @@ export function DashboardLayout() {
     return g;
   }, [filteredItems]);
 
+  // Bottom nav: show first 4 items; if more than 4 show first 3 + "More"
+  const showMore = filteredItems.length > 4;
+  const bottomNavItems = showMore ? filteredItems.slice(0, 3) : filteredItems.slice(0, 4);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -86,7 +91,7 @@ export function DashboardLayout() {
       <div className="min-h-screen bg-background">
         <Toaster
           theme="dark"
-          position="top-right"
+          position="top-center"
           toastOptions={{
             className: 'border border-border bg-card text-card-foreground',
           }}
@@ -148,7 +153,7 @@ export function DashboardLayout() {
                         to={item.href}
                         onClick={() => setSidebarOpen(false)}
                         className={cn(
-                          'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all',
+                          'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all',
                           isActive
                             ? 'bg-primary/10 text-primary shadow-sm shadow-primary/5'
                             : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -200,7 +205,7 @@ export function DashboardLayout() {
                     {user?.firstName} {user?.lastName}
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate capitalize">
-                    {user?.role?.replace('_', ' ').toLowerCase()}
+                    {user?.role?.replace(/_/g, ' ').toLowerCase()}
                   </p>
                 </div>
               )}
@@ -230,6 +235,7 @@ export function DashboardLayout() {
             collapsed ? 'lg:pl-[var(--sidebar-width-collapsed)]' : 'lg:pl-[var(--sidebar-width)]'
           )}
         >
+          {/* Header */}
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 backdrop-blur-md px-4 lg:px-6">
             <button
               className="lg:hidden text-muted-foreground hover:text-foreground"
@@ -238,13 +244,67 @@ export function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </button>
             <Separator orientation="vertical" className="h-5 lg:hidden" />
-            <h1 className="text-sm font-semibold">{currentPageLabel}</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/15 lg:hidden">
+                <Church className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <h1 className="text-sm font-semibold truncate">{currentPageLabel}</h1>
+            </div>
+            {/* User avatar on mobile header */}
+            <div className="ml-auto flex items-center gap-2 lg:hidden">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold ring-1 ring-primary/20">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            </div>
           </header>
 
-          <main className="p-4 lg:p-6 max-w-7xl animate-fade-in">
+          {/* Page content — pb-20 on mobile so bottom nav doesn't overlap */}
+          <main className="p-4 lg:p-6 pb-24 lg:pb-6 max-w-7xl animate-fade-in">
             <Outlet />
           </main>
         </div>
+
+        {/* Bottom navigation — mobile only */}
+        <nav className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-card border-t border-border safe-area-bottom">
+          <div className="flex items-stretch h-16">
+            {bottomNavItems.map((item) => {
+              const isActive =
+                location.pathname === item.href ||
+                (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors active:scale-95',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                >
+                  <div className={cn(
+                    'flex items-center justify-center rounded-full w-8 h-6 transition-colors',
+                    isActive ? 'bg-primary/15' : ''
+                  )}>
+                    <Icon className="h-[18px] w-[18px]" />
+                  </div>
+                  <span className="leading-none">{item.label}</span>
+                </Link>
+              );
+            })}
+            {showMore && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors active:scale-95"
+              >
+                <div className="flex items-center justify-center w-8 h-6">
+                  <MoreHorizontal className="h-[18px] w-[18px]" />
+                </div>
+                <span className="leading-none">More</span>
+              </button>
+            )}
+          </div>
+        </nav>
       </div>
     </TooltipProvider>
   );
