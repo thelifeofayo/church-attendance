@@ -37,6 +37,55 @@ interface MemberForm {
 
 const emptyForm: MemberForm = { firstName: '', lastName: '', birthMonth: '', birthDay: '', phoneNumber: '', email: '' };
 
+interface MemberFormFieldsProps {
+  form: MemberForm;
+  setForm: React.Dispatch<React.SetStateAction<MemberForm>>;
+}
+
+function MemberFormFields({ form, setForm }: MemberFormFieldsProps) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>First Name</Label>
+          <Input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} required />
+        </div>
+        <div className="space-y-2">
+          <Label>Last Name</Label>
+          <Input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} required />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Birthday (Optional)</Label>
+        <div className="flex gap-2">
+          <Select value={form.birthMonth || NO_SELECTION} onValueChange={(v) => setForm((f) => ({ ...f, birthMonth: v === NO_SELECTION ? '' : v }))}>
+            <SelectTrigger className="flex-1"><SelectValue placeholder="Month" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_SELECTION}>Not set</SelectItem>
+              {MONTHS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={form.birthDay || NO_SELECTION} onValueChange={(v) => setForm((f) => ({ ...f, birthDay: v === NO_SELECTION ? '' : v }))}>
+            <SelectTrigger className="w-24"><SelectValue placeholder="Day" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_SELECTION}>Not set</SelectItem>
+              {DAYS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Phone Number</Label>
+        <Input value={form.phoneNumber} onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))} placeholder="+234 801 234 5678" required />
+      </div>
+      <div className="space-y-2">
+        <Label>Email</Label>
+        <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="john@example.com" required />
+      </div>
+    </>
+  );
+}
+
 export function MembersPage() {
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = React.useState(false);
@@ -136,48 +185,6 @@ export function MembersPage() {
       </div>
     );
   }
-
-  const MemberFormFields = () => (
-    <>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>First Name</Label>
-          <Input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} required />
-        </div>
-        <div className="space-y-2">
-          <Label>Last Name</Label>
-          <Input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} required />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>Birthday (Optional)</Label>
-        <div className="flex gap-2">
-          <Select value={form.birthMonth || NO_SELECTION} onValueChange={(v) => setForm((f) => ({ ...f, birthMonth: v === NO_SELECTION ? '' : v }))}>
-            <SelectTrigger className="flex-1"><SelectValue placeholder="Month" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NO_SELECTION}>Not set</SelectItem>
-              {MONTHS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={form.birthDay || NO_SELECTION} onValueChange={(v) => setForm((f) => ({ ...f, birthDay: v === NO_SELECTION ? '' : v }))}>
-            <SelectTrigger className="w-24"><SelectValue placeholder="Day" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NO_SELECTION}>Not set</SelectItem>
-              {DAYS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>Phone Number</Label>
-        <Input value={form.phoneNumber} onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))} placeholder="+234 801 234 5678" required />
-      </div>
-      <div className="space-y-2">
-        <Label>Email</Label>
-        <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="john@example.com" required />
-      </div>
-    </>
-  );
 
   return (
     <div className="space-y-6">
@@ -280,7 +287,7 @@ export function MembersPage() {
             <DialogDescription>Add a new member to your department.</DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }} className="space-y-4">
-            <MemberFormFields />
+            <MemberFormFields form={form} setForm={setForm} />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={createMutation.isPending}>
@@ -299,7 +306,7 @@ export function MembersPage() {
             <DialogDescription>Update member information.</DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(); }} className="space-y-4">
-            <MemberFormFields />
+            <MemberFormFields form={form} setForm={setForm} />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={updateMutation.isPending}>

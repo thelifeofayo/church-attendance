@@ -7,6 +7,7 @@ const auditLog_1 = require("../../utils/auditLog");
 const errors_1 = require("../../utils/errors");
 const shared_1 = require("shared");
 const uuid_1 = require("uuid");
+const departments_service_1 = require("../departments/departments.service");
 class UsersService {
     async listUsers(query, currentUser) {
         const { page, limit, role, teamId, search, includeInactive } = query;
@@ -208,6 +209,29 @@ class UsersService {
                 where: { id: departmentId },
                 data: { hodId: user.id },
             });
+            // Automatically add HOD as a member of their department
+            await departments_service_1.departmentsService.ensureUserIsMember(user.id, departmentId, currentUser.userId);
+        }
+        if (role === shared_1.Role.ASSISTANT_HOD && departmentId) {
+            const department = await prisma_1.prisma.department.findUnique({
+                where: { id: departmentId },
+                include: { team: true },
+            });
+            if (!department) {
+                throw new errors_1.NotFoundError('Department');
+            }
+            if (currentUser.role === shared_1.Role.TEAM_HEAD && department.teamId !== currentUser.teamId) {
+                throw new errors_1.ForbiddenError('Cannot assign Assistant HOD to department outside your team');
+            }
+            if (department.assistantHodId) {
+                throw new errors_1.ConflictError('This department already has an Assistant HOD assigned');
+            }
+            await prisma_1.prisma.department.update({
+                where: { id: departmentId },
+                data: { assistantHodId: user.id },
+            });
+            // Automatically add Assistant HOD as a member of their department
+            await departments_service_1.departmentsService.ensureUserIsMember(user.id, departmentId, currentUser.userId);
         }
         // Create audit log
         await (0, auditLog_1.createAuditLog)({

@@ -6,6 +6,7 @@ import { Role, User, UserWithRelations, PaginatedResponse } from 'shared';
 import { CreateUserInput, UpdateUserInput, ListUsersQuery } from './users.schema';
 import { TokenPayload } from '../../utils/jwt';
 import { v4 as uuidv4 } from 'uuid';
+import { departmentsService } from '../departments/departments.service';
 
 export class UsersService {
   async listUsers(
@@ -244,6 +245,36 @@ export class UsersService {
         where: { id: departmentId },
         data: { hodId: user.id },
       });
+
+      // Automatically add HOD as a member of their department
+      await departmentsService.ensureUserIsMember(user.id, departmentId, currentUser.userId);
+    }
+
+    if (role === Role.ASSISTANT_HOD && departmentId) {
+      const department = await prisma.department.findUnique({
+        where: { id: departmentId },
+        include: { team: true },
+      });
+
+      if (!department) {
+        throw new NotFoundError('Department');
+      }
+
+      if (currentUser.role === Role.TEAM_HEAD && department.teamId !== currentUser.teamId) {
+        throw new ForbiddenError('Cannot assign Assistant HOD to department outside your team');
+      }
+
+      if (department.assistantHodId) {
+        throw new ConflictError('This department already has an Assistant HOD assigned');
+      }
+
+      await prisma.department.update({
+        where: { id: departmentId },
+        data: { assistantHodId: user.id },
+      });
+
+      // Automatically add Assistant HOD as a member of their department
+      await departmentsService.ensureUserIsMember(user.id, departmentId, currentUser.userId);
     }
 
     // Create audit log

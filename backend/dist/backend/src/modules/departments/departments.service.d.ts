@@ -2,7 +2,7 @@ import { Department, DepartmentWithRelations, PaginatedResponse } from 'shared';
 import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, AssignAssistantHODInput, ListDepartmentsQuery } from './departments.schema';
 import { TokenPayload } from '../../utils/jwt';
 export declare class DepartmentsService {
-    private ensureUserIsMember;
+    ensureUserIsMember(userId: string, departmentId: string, createdById: string): Promise<void>;
     listDepartments(query: ListDepartmentsQuery, currentUser: TokenPayload): Promise<PaginatedResponse<DepartmentWithRelations>>;
     getDepartmentById(id: string, currentUser: TokenPayload): Promise<DepartmentWithRelations>;
     createDepartment(input: CreateDepartmentInput, currentUser: TokenPayload): Promise<Department>;
