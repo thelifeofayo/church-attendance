@@ -72,6 +72,7 @@ const ROLE_COLORS: Record<Role, string> = {
 interface UserWithAssignment extends User {
   teamAsHead?: { id: string; name: string } | null;
   departmentAsHOD?: { id: string; name: string; team?: { id: string; name: string } } | null;
+  departmentAsAssistantHOD?: { id: string; name: string; team?: { id: string; name: string } } | null;
 }
 
 interface TeamOption {
@@ -319,6 +320,7 @@ export function UsersPage() {
   function getAssignment(u: UserWithAssignment): string {
     if (u.teamAsHead) return u.teamAsHead.name;
     if (u.departmentAsHOD) return u.departmentAsHOD.name;
+    if (u.departmentAsAssistantHOD) return u.departmentAsAssistantHOD.name;
     return '—';
   }
 

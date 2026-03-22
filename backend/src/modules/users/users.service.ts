@@ -79,6 +79,13 @@ export class UsersService {
               team: { select: { id: true, name: true } },
             },
           },
+          departmentAsAssistantHOD: {
+            select: {
+              id: true,
+              name: true,
+              team: { select: { id: true, name: true } },
+            },
+          },
         },
       }),
       prisma.user.count({ where }),
@@ -116,6 +123,13 @@ export class UsersService {
             team: { select: { id: true, name: true } },
           },
         },
+        departmentAsAssistantHOD: {
+          select: {
+            id: true,
+            name: true,
+            team: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -144,6 +158,7 @@ export class UsersService {
       updatedAt: user.updatedAt.toISOString(),
       teamAsHead: user.teamAsHead as any,
       departmentAsHOD: user.departmentAsHOD as any,
+      departmentAsAssistantHOD: user.departmentAsAssistantHOD as any,
     };
   }
 
