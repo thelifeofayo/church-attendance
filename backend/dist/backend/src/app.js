@@ -23,6 +23,7 @@ const reports_routes_1 = __importDefault(require("./modules/reports/reports.rout
 const emailTemplates_routes_1 = __importDefault(require("./modules/email-templates/emailTemplates.routes"));
 const broadcasts_routes_1 = __importDefault(require("./modules/broadcasts/broadcasts.routes"));
 const uploads_routes_1 = __importDefault(require("./modules/uploads/uploads.routes"));
+const cron_routes_1 = __importDefault(require("./modules/cron/cron.routes"));
 function createApp() {
     const app = (0, express_1.default)();
     // Trust proxy headers from Vercel/load balancers (required for express-rate-limit)
@@ -91,6 +92,7 @@ function createApp() {
     app.use('/api/email-templates', emailTemplates_routes_1.default);
     app.use('/api/broadcasts', broadcasts_routes_1.default);
     app.use('/api/uploads', uploads_routes_1.default);
+    app.use('/api/cron', cron_routes_1.default);
     // 404 handler
     app.use(errorHandler_1.notFoundHandler);
     // Error handler

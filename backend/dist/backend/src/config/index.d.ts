@@ -42,6 +42,7 @@ export declare const config: {
         readonly apiKey: string;
         readonly apiSecret: string;
     };
+    readonly cronSecret: string;
 };
 export declare function validateConfig(): void;
 //# sourceMappingURL=index.d.ts.map

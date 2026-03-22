@@ -18,6 +18,7 @@ import reportsRoutes from './modules/reports/reports.routes';
 import emailTemplatesRoutes from './modules/email-templates/emailTemplates.routes';
 import broadcastsRoutes from './modules/broadcasts/broadcasts.routes';
 import uploadsRoutes from './modules/uploads/uploads.routes';
+import cronRoutes from './modules/cron/cron.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -97,6 +98,7 @@ export function createApp(): Application {
   app.use('/api/email-templates', emailTemplatesRoutes);
   app.use('/api/broadcasts', broadcastsRoutes);
   app.use('/api/uploads', uploadsRoutes);
+  app.use('/api/cron', cronRoutes);
 
   // 404 handler
   app.use(notFoundHandler);

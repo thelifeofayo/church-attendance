@@ -65,6 +65,8 @@ exports.config = {
         apiKey: process.env.CLOUDINARY_API_KEY || '',
         apiSecret: process.env.CLOUDINARY_API_SECRET || '',
     },
+    // Cron secret — Vercel sends this as Authorization: Bearer <secret>
+    cronSecret: process.env.CRON_SECRET || '',
 };
 // Validate required environment variables
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
