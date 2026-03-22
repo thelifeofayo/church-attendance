@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { Role } from 'shared';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 
 // Layouts
 import { AuthLayout } from '@/components/layouts/AuthLayout';
@@ -100,6 +101,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // Activity tracking for auto-logout after 15 minutes of inactivity
+  useActivityTracker();
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -167,7 +171,7 @@ export default function App() {
               <Route
                 path="members"
                 element={
-                  <ProtectedRoute allowedRoles={[Role.HOD]}>
+                  <ProtectedRoute allowedRoles={[Role.HOD, Role.ASSISTANT_HOD]}>
                     <MembersPage />
                   </ProtectedRoute>
                 }
@@ -187,7 +191,7 @@ export default function App() {
               <Route
                 path="users"
                 element={
-                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD]}>
                     <UsersPage />
                   </ProtectedRoute>
                 }
@@ -197,7 +201,7 @@ export default function App() {
               <Route
                 path="departments"
                 element={
-                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD]}>
                     <DepartmentsPage />
                   </ProtectedRoute>
                 }
@@ -227,7 +231,7 @@ export default function App() {
               <Route
                 path="broadcasts"
                 element={
-                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD]}>
+                  <ProtectedRoute allowedRoles={[Role.ADMIN, Role.TEAM_HEAD, Role.SUB_TEAM_HEAD]}>
                     <BroadcastsPage />
                   </ProtectedRoute>
                 }

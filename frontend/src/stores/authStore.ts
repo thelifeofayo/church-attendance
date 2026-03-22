@@ -24,7 +24,9 @@ interface AuthState {
   // Helpers
   isAdmin: () => boolean;
   isTeamHead: () => boolean;
+  isSubTeamHead: () => boolean;
   isHOD: () => boolean;
+  isAssistantHOD: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -62,7 +64,9 @@ export const useAuthStore = create<AuthState>()(
 
       isAdmin: () => get().user?.role === Role.ADMIN,
       isTeamHead: () => get().user?.role === Role.TEAM_HEAD,
+      isSubTeamHead: () => get().user?.role === Role.SUB_TEAM_HEAD,
       isHOD: () => get().user?.role === Role.HOD,
+      isAssistantHOD: () => get().user?.role === Role.ASSISTANT_HOD,
     }),
     {
       name: 'auth-storage',

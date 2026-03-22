@@ -15,6 +15,10 @@ export const assignHODSchema = z.object({
   hodId: z.string().uuid('Invalid HOD ID').nullable(),
 });
 
+export const assignAssistantHODSchema = z.object({
+  assistantHodId: z.string().uuid('Invalid Assistant HOD ID').nullable(),
+});
+
 export const listDepartmentsQuerySchema = z.object({
   page: z.string().transform(Number).default('1'),
   limit: z.string().transform(Number).default('20'),
@@ -30,4 +34,5 @@ export const departmentIdParamSchema = z.object({
 export type CreateDepartmentInput = z.infer<typeof createDepartmentSchema>;
 export type UpdateDepartmentInput = z.infer<typeof updateDepartmentSchema>;
 export type AssignHODInput = z.infer<typeof assignHODSchema>;
+export type AssignAssistantHODInput = z.infer<typeof assignAssistantHODSchema>;
 export type ListDepartmentsQuery = z.infer<typeof listDepartmentsQuerySchema>;

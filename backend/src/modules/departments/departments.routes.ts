@@ -7,6 +7,7 @@ import {
   createDepartmentSchema,
   updateDepartmentSchema,
   assignHODSchema,
+  assignAssistantHODSchema,
   listDepartmentsQuerySchema,
   departmentIdParamSchema,
 } from './departments.schema';
@@ -51,6 +52,13 @@ router.patch(
   requireAdminOrTeamHead(),
   validate({ params: departmentIdParamSchema, body: assignHODSchema }),
   departmentsController.assignHOD
+);
+
+router.patch(
+  '/:id/assign-assistant-hod',
+  requireAdminOrTeamHead(),
+  validate({ params: departmentIdParamSchema, body: assignAssistantHODSchema }),
+  departmentsController.assignAssistantHOD
 );
 
 router.delete(

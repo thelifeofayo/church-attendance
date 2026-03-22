@@ -36,8 +36,8 @@ export class TeamsService {
       where.name = { contains: search, mode: 'insensitive' };
     }
 
-    // Team Heads can only see their own team
-    if (currentUser.role === Role.TEAM_HEAD) {
+    // Team Heads and Sub-Team Heads can only see their own team
+    if (currentUser.role === Role.TEAM_HEAD || currentUser.role === Role.SUB_TEAM_HEAD) {
       where.id = currentUser.teamId;
     }
 
@@ -99,8 +99,8 @@ export class TeamsService {
     id: string,
     currentUser: TokenPayload
   ): Promise<TeamWithRelations> {
-    // Team Heads can only view their own team
-    if (currentUser.role === Role.TEAM_HEAD && currentUser.teamId !== id) {
+    // Team Heads and Sub-Team Heads can only view their own team
+    if ((currentUser.role === Role.TEAM_HEAD || currentUser.role === Role.SUB_TEAM_HEAD) && currentUser.teamId !== id) {
       throw new ForbiddenError('Access denied to this team');
     }
 

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { departmentsService } from './departments.service';
 import { ApiResponse, Department, DepartmentWithRelations, PaginatedResponse } from 'shared';
-import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, ListDepartmentsQuery } from './departments.schema';
+import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, AssignAssistantHODInput, ListDepartmentsQuery } from './departments.schema';
 
 export class DepartmentsController {
   async list(
@@ -72,6 +72,22 @@ export class DepartmentsController {
   ): Promise<void> {
     try {
       const department = await departmentsService.assignHOD(req.params.id, req.body, req.user!);
+      res.json({
+        success: true,
+        data: department,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async assignAssistantHOD(
+    req: Request<{ id: string }, unknown, AssignAssistantHODInput>,
+    res: Response<ApiResponse<Department>>,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const department = await departmentsService.assignAssistantHOD(req.params.id, req.body, req.user!);
       res.json({
         success: true,
         data: department,

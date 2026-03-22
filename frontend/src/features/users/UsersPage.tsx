@@ -56,13 +56,17 @@ const NO_SELECTION = '__none__';
 const ROLE_LABELS: Record<Role, string> = {
   [Role.ADMIN]: 'Admin',
   [Role.TEAM_HEAD]: 'Team Head',
+  [Role.SUB_TEAM_HEAD]: 'Sub-Team Head',
   [Role.HOD]: 'Head of Department',
+  [Role.ASSISTANT_HOD]: 'Assistant HOD',
 };
 
 const ROLE_COLORS: Record<Role, string> = {
   [Role.ADMIN]: 'bg-destructive/15 text-destructive border-destructive/20',
   [Role.TEAM_HEAD]: 'bg-primary/15 text-primary border-primary/20',
+  [Role.SUB_TEAM_HEAD]: 'bg-blue-500/15 text-blue-600 border-blue-500/20',
   [Role.HOD]: 'bg-success/15 text-success border-success/20',
+  [Role.ASSISTANT_HOD]: 'bg-green-500/15 text-green-600 border-green-500/20',
 };
 
 interface UserWithAssignment extends User {

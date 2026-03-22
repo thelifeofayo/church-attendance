@@ -80,7 +80,12 @@ export async function authenticate(
 
     if (user.role === Role.TEAM_HEAD && user.teamAsHead) {
       teamId = user.teamAsHead.id;
+    } else if (user.role === Role.SUB_TEAM_HEAD && user.teamAsHead) {
+      teamId = user.teamAsHead.id;
     } else if (user.role === Role.HOD && user.departmentAsHOD) {
+      departmentId = user.departmentAsHOD.id;
+      teamId = user.departmentAsHOD.teamId;
+    } else if (user.role === Role.ASSISTANT_HOD && user.departmentAsHOD) {
       departmentId = user.departmentAsHOD.id;
       teamId = user.departmentAsHOD.teamId;
     }

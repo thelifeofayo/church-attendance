@@ -6,7 +6,9 @@
 export enum Role {
   ADMIN = 'ADMIN',
   TEAM_HEAD = 'TEAM_HEAD',
+  SUB_TEAM_HEAD = 'SUB_TEAM_HEAD',
   HOD = 'HOD',
+  ASSISTANT_HOD = 'ASSISTANT_HOD',
 }
 
 export enum ServiceType {
@@ -44,6 +46,7 @@ export interface Team extends BaseEntity {
 
 export interface TeamWithRelations extends Team {
   teamHead?: User | null;
+  subTeamHead?: User | null;
   departments?: Department[];
   _count?: {
     departments: number;
@@ -61,6 +64,7 @@ export interface Department extends BaseEntity {
 export interface DepartmentWithRelations extends Department {
   team?: Team;
   hod?: User | null;
+  assistantHod?: User | null;
   members?: Member[];
   _count?: {
     members: number;
@@ -81,7 +85,9 @@ export interface User extends BaseEntity {
 
 export interface UserWithRelations extends User {
   teamAsHead?: Team | null;
+  teamAsSubHead?: Team | null;
   departmentAsHOD?: Department | null;
+  departmentAsAssistantHOD?: Department | null;
 }
 
 // Member

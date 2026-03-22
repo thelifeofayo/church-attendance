@@ -2,10 +2,57 @@ import { prisma } from '../../utils/prisma';
 import { createAuditLog, generateDiff } from '../../utils/auditLog';
 import { NotFoundError, ConflictError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { Role, Department, DepartmentWithRelations, PaginatedResponse } from 'shared';
-import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, ListDepartmentsQuery } from './departments.schema';
+import { CreateDepartmentInput, UpdateDepartmentInput, AssignHODInput, AssignAssistantHODInput, ListDepartmentsQuery } from './departments.schema';
 import { TokenPayload } from '../../utils/jwt';
 
 export class DepartmentsService {
+  private async ensureUserIsMember(
+    userId: string,
+    departmentId: string,
+    createdById: string
+  ): Promise<void> {
+    // Get user details first
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        firstName: true,
+        lastName: true,
+        birthMonth: true,
+        birthDay: true,
+        phoneNumber: true,
+        email: true,
+      },
+    });
+
+    if (!user) return;
+
+    // Check if user is already a member of this department
+    // We'll check by matching name and email (if available)
+    const existingMember = await prisma.member.findFirst({
+      where: {
+        departmentId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email || null,
+      },
+    });
+
+    if (!existingMember) {
+      // Create member record
+      await prisma.member.create({
+        data: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          departmentId,
+          createdById,
+          birthMonth: user.birthMonth,
+          birthDay: user.birthDay,
+          phoneNumber: user.phoneNumber,
+          email: user.email,
+        },
+      });
+    }
+  }
   async listDepartments(
     query: ListDepartmentsQuery,
     currentUser: TokenPayload
@@ -24,9 +71,9 @@ export class DepartmentsService {
     }
 
     // Role-based filtering
-    if (currentUser.role === Role.TEAM_HEAD) {
+    if (currentUser.role === Role.TEAM_HEAD || currentUser.role === Role.SUB_TEAM_HEAD) {
       where.teamId = currentUser.teamId;
-    } else if (currentUser.role === Role.HOD) {
+    } else if (currentUser.role === Role.HOD || currentUser.role === Role.ASSISTANT_HOD) {
       where.id = currentUser.departmentId;
     } else if (teamId) {
       where.teamId = teamId;
@@ -41,6 +88,14 @@ export class DepartmentsService {
         include: {
           team: { select: { id: true, name: true } },
           hod: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          assistantHod: {
             select: {
               id: true,
               firstName: true,
@@ -77,6 +132,16 @@ export class DepartmentsService {
           createdAt: '',
           updatedAt: '',
         } : null,
+        assistantHod: d.assistantHod ? {
+          id: d.assistantHod.id,
+          email: d.assistantHod.email,
+          firstName: d.assistantHod.firstName,
+          lastName: d.assistantHod.lastName,
+          role: Role.ASSISTANT_HOD,
+          isActive: true,
+          createdAt: '',
+          updatedAt: '',
+        } : null,
         _count: d._count,
       })),
       meta: {
@@ -97,6 +162,14 @@ export class DepartmentsService {
       include: {
         team: { select: { id: true, name: true } },
         hod: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assistantHod: {
           select: {
             id: true,
             firstName: true,
@@ -126,11 +199,11 @@ export class DepartmentsService {
     }
 
     // Permission checks
-    if (currentUser.role === Role.TEAM_HEAD && department.teamId !== currentUser.teamId) {
+    if ((currentUser.role === Role.TEAM_HEAD || currentUser.role === Role.SUB_TEAM_HEAD) && department.teamId !== currentUser.teamId) {
       throw new ForbiddenError('Access denied to this department');
     }
 
-    if (currentUser.role === Role.HOD && department.id !== currentUser.departmentId) {
+    if ((currentUser.role === Role.HOD || currentUser.role === Role.ASSISTANT_HOD) && department.id !== currentUser.departmentId) {
       throw new ForbiddenError('Access denied to this department');
     }
 
@@ -149,6 +222,16 @@ export class DepartmentsService {
         firstName: department.hod.firstName,
         lastName: department.hod.lastName,
         role: Role.HOD,
+        isActive: true,
+        createdAt: '',
+        updatedAt: '',
+      } : null,
+      assistantHod: department.assistantHod ? {
+        id: department.assistantHod.id,
+        email: department.assistantHod.email,
+        firstName: department.assistantHod.firstName,
+        lastName: department.assistantHod.lastName,
+        role: Role.ASSISTANT_HOD,
         isActive: true,
         createdAt: '',
         updatedAt: '',
@@ -388,6 +471,11 @@ export class DepartmentsService {
       data: { hodId },
     });
 
+    // If an HOD was assigned, ensure they are also a member of the department
+    if (hodId) {
+      await this.ensureUserIsMember(hodId, id, currentUser.userId);
+    }
+
     // Create audit log
     await createAuditLog({
       userId: currentUser.userId,
@@ -396,6 +484,81 @@ export class DepartmentsService {
       entityType: 'Department',
       entityId: department.id,
       diff: { hodId: { old: existingDept.hodId, new: hodId } },
+    });
+
+    return {
+      id: department.id,
+      name: department.name,
+      teamId: department.teamId,
+      hodId: department.hodId,
+      isActive: department.isActive,
+      createdAt: department.createdAt.toISOString(),
+      updatedAt: department.updatedAt.toISOString(),
+    };
+  }
+
+  async assignAssistantHOD(
+    id: string,
+    input: AssignAssistantHODInput,
+    currentUser: TokenPayload
+  ): Promise<Department> {
+    const { assistantHodId } = input;
+
+    const existingDept = await prisma.department.findUnique({
+      where: { id },
+    });
+
+    if (!existingDept) {
+      throw new NotFoundError('Department');
+    }
+
+    // Permission checks
+    if ((currentUser.role === Role.TEAM_HEAD || currentUser.role === Role.SUB_TEAM_HEAD) && existingDept.teamId !== currentUser.teamId) {
+      throw new ForbiddenError('Access denied to this department');
+    }
+
+    if (currentUser.role !== Role.ADMIN && currentUser.role !== Role.TEAM_HEAD && currentUser.role !== Role.SUB_TEAM_HEAD) {
+      throw new ForbiddenError('Only Admins and Team Heads can assign Assistant HODs');
+    }
+
+    // If assigning a new Assistant HOD
+    if (assistantHodId) {
+      const user = await prisma.user.findUnique({
+        where: { id: assistantHodId },
+        include: { departmentAsAssistantHOD: true },
+      });
+
+      if (!user) {
+        throw new NotFoundError('User');
+      }
+
+      if (user.role !== Role.ASSISTANT_HOD) {
+        throw new ConflictError('User must have ASSISTANT_HOD role');
+      }
+
+      if (user.departmentAsAssistantHOD && user.departmentAsAssistantHOD.id !== id) {
+        throw new ConflictError('User is already assigned as Assistant HOD of another department');
+      }
+    }
+
+    const department = await prisma.department.update({
+      where: { id },
+      data: { assistantHodId },
+    });
+
+    // If an Assistant HOD was assigned, ensure they are also a member of the department
+    if (assistantHodId) {
+      await this.ensureUserIsMember(assistantHodId, id, currentUser.userId);
+    }
+
+    // Create audit log
+    await createAuditLog({
+      userId: currentUser.userId,
+      userRole: currentUser.role as Role,
+      action: 'UPDATE',
+      entityType: 'Department',
+      entityId: department.id,
+      diff: { assistantHodId: { old: existingDept.assistantHodId, new: assistantHodId } },
     });
 
     return {
